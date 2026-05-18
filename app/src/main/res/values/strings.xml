@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">CourierApp</string>
+    <string name="btn_login">Войти</string>
+    <string name="btn_register">Зарегистрироваться</string>
+    <string name="txt_Hello">Войдите или зарегистрируйтесь</string>
+
+
+</resources>
