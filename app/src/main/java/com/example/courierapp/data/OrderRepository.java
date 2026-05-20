@@ -11,11 +11,11 @@ import java.util.List;
 
 public class OrderRepository {
 
+    // Создание заказа
     public boolean createOrder(Order order) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
 
-        // Добавляем все поля заказа
         String query = "INSERT INTO orders (client_id, pickup_address, delivery_address, status, price, weight, length, width, height, product_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try {
@@ -46,14 +46,11 @@ public class OrderRepository {
             android.util.Log.e("ORDER_REPO", "Ошибка создания заказа", e);
             return false;
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
+    // Получение заказов клиента
     public List<Order> getOrdersByClientId(String clientId) {
         Connection conn = DBWorker.getConnection();
         List<Order> orders = new ArrayList<>();
@@ -80,15 +77,12 @@ public class OrderRepository {
         } catch (SQLException e) {
             android.util.Log.e("ORDER_REPO", "Ошибка получения заказов клиента", e);
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
         return orders;
     }
 
+    // Получение всех доступных заказов
     public List<Order> getAllAvailableOrders() {
         Connection conn = DBWorker.getConnection();
         List<Order> orders = new ArrayList<>();
@@ -112,15 +106,12 @@ public class OrderRepository {
         } catch (SQLException e) {
             android.util.Log.e("ORDER_REPO", "Ошибка получения доступных заказов", e);
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
         return orders;
     }
 
+    // Получение заказов курьера (статусы 2, 3, 4 - все принятые)
     public List<Order> getOrdersByCourierId(String courierId) {
         Connection conn = DBWorker.getConnection();
         List<Order> orders = new ArrayList<>();
@@ -130,7 +121,7 @@ public class OrderRepository {
                 "c.full_name as client_name, c.phone as client_phone " +
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
-                "WHERE o.courier_id = ? AND o.status = 2 ORDER BY o.created_at DESC";
+                "WHERE o.courier_id = ? AND o.status IN (2, 3, 4) ORDER BY o.created_at DESC";
 
         try {
             PreparedStatement stmt = conn.prepareStatement(query);
@@ -145,41 +136,71 @@ public class OrderRepository {
         } catch (SQLException e) {
             android.util.Log.e("ORDER_REPO", "Ошибка получения заказов курьера", e);
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
         return orders;
     }
 
-    public boolean acceptOrder(String orderId, String courierId) {
+    // Принятие заказа со списанием баланса
+    public boolean acceptOrderWithPayment(String orderId, String courierId, double price) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
 
-        String query = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
+        double deposit = price / 2;
 
         try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, courierId);
-            stmt.setString(2, orderId);
+            conn.setAutoCommit(false);
 
-            int affectedRows = stmt.executeUpdate();
-            return affectedRows > 0;
+            String checkBalanceQuery = "SELECT balance FROM users WHERE id = ? FOR UPDATE";
+            PreparedStatement checkStmt = conn.prepareStatement(checkBalanceQuery);
+            checkStmt.setString(1, courierId);
+            ResultSet rs = checkStmt.executeQuery();
+
+            if (!rs.next()) {
+                conn.rollback();
+                return false;
+            }
+
+            double currentBalance = rs.getDouble("balance");
+            if (currentBalance < deposit) {
+                conn.rollback();
+                android.util.Log.e("ORDER_REPO", "Недостаточно средств. Нужно: " + deposit + ", доступно: " + currentBalance);
+                return false;
+            }
+
+            String updateBalanceQuery = "UPDATE users SET balance = balance - ? WHERE id = ?";
+            PreparedStatement balanceStmt = conn.prepareStatement(updateBalanceQuery);
+            balanceStmt.setDouble(1, deposit);
+            balanceStmt.setString(2, courierId);
+            balanceStmt.executeUpdate();
+
+            String updateOrderQuery = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
+            PreparedStatement orderStmt = conn.prepareStatement(updateOrderQuery);
+            orderStmt.setString(1, courierId);
+            orderStmt.setString(2, orderId);
+            int affectedRows = orderStmt.executeUpdate();
+
+            if (affectedRows > 0) {
+                conn.commit();
+                return true;
+            } else {
+                conn.rollback();
+                return false;
+            }
 
         } catch (SQLException e) {
             android.util.Log.e("ORDER_REPO", "Ошибка принятия заказа", e);
+            try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             return false;
         } finally {
             try {
+                conn.setAutoCommit(true);
                 if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
+    // Отмена заказа (без возврата средств)
     public boolean cancelOrder(String orderId) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
@@ -197,11 +218,52 @@ public class OrderRepository {
             android.util.Log.e("ORDER_REPO", "Ошибка отмены заказа", e);
             return false;
         } finally {
-            try {
-                if (conn != null) conn.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+
+    // Обновление статуса заказа
+    public boolean updateOrderStatus(String orderId, int newStatus) {
+        Connection conn = DBWorker.getConnection();
+        if (conn == null) return false;
+
+        String query = "UPDATE orders SET status = ? WHERE id = ?";
+
+        try {
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setInt(1, newStatus);
+            stmt.setString(2, orderId);
+
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            android.util.Log.e("ORDER_REPO", "Ошибка обновления статуса заказа", e);
+            return false;
+        } finally {
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+
+    // Подтверждение клиентом (отдал заказ)
+    public boolean confirmDeliveredByClient(String orderId) {
+        Connection conn = DBWorker.getConnection();
+        if (conn == null) return false;
+
+        String query = "UPDATE orders SET status = 4 WHERE id = ? AND status = 3";
+
+        try {
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, orderId);
+
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+
+        } catch (SQLException e) {
+            android.util.Log.e("ORDER_REPO", "Ошибка подтверждения получения заказа клиентом", e);
+            return false;
+        } finally {
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
@@ -226,9 +288,7 @@ public class OrderRepository {
                 order.setCourierName(courierName);
                 order.setCourierPhone(courierPhone);
             }
-        } catch (SQLException e) {
-            // Поля могут отсутствовать в некоторых запросах
-        }
+        } catch (SQLException e) { }
 
         String courierId = rs.getString("courier_id");
         if (courierId != null) {

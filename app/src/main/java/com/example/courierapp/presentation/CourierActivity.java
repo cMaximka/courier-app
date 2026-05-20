@@ -1,5 +1,7 @@
 package com.example.courierapp.presentation;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -51,7 +53,6 @@ public class CourierActivity extends AppCompatActivity {
         btnProfile = findViewById(R.id.btn_profile);
         rvOrders = findViewById(R.id.rv_courierOrders);
 
-        // Обработчик переключения RadioButton
         rgOrderType.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup group, int checkedId) {
@@ -87,12 +88,20 @@ public class CourierActivity extends AppCompatActivity {
         orderAdapter = new OrderAdapter(ordersList, new OrderAdapter.OnOrderActionListener() {
             @Override
             public void onAcceptClick(Order order) {
-                acceptOrder(order);
+                showAcceptConfirmationDialog(order);
             }
 
             @Override
             public void onCancelClick(Order order) {
-                cancelOrder(order);
+                showCancelConfirmationDialog(order);
+            }
+
+            @Override
+            public void onItemClick(Order order) {
+                // Только принятые заказы (статус 2 и выше) могут быть кликабельны
+                if (order.getStatus() >= 2) {
+                    openOrderDetail(order);
+                }
             }
         }, 1);
 
@@ -100,6 +109,65 @@ public class CourierActivity extends AppCompatActivity {
         rvOrders.setAdapter(orderAdapter);
 
         loadAvailableOrders();
+    }
+
+    // Диалог подтверждения принятия заказа
+    private void showAcceptConfirmationDialog(final Order order) {
+        double deposit = order.getPrice() / 2;
+        double currentBalance = currentUser.getBalance();
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Подтверждение принятия заказа");
+        builder.setMessage(String.format(
+                "Вы уверены, что хотите принять этот заказ?\n\n" +
+                        "Стоимость заказа: %.2f руб.\n" +
+                        "Взнос за заказ: %.2f руб.\n" +
+                        "Ваш текущий баланс: %.2f руб.\n\n" +
+                        "После принятия заказа с вашего баланса будет списано %.2f руб.\n" +
+                        "Отказаться от заказа после принятия будет возможно, но взнос НЕ возвращается!",
+                order.getPrice(), deposit, currentBalance, deposit));
+
+        builder.setPositiveButton("Принять", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                acceptOrder(order);
+            }
+        });
+
+        builder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        builder.show();
+    }
+
+    // Диалог подтверждения отмены заказа
+    private void showCancelConfirmationDialog(final Order order) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Подтверждение отмены заказа");
+        builder.setMessage(String.format(
+                "Вы уверены, что хотите отказаться от заказа №%s?\n\n" +
+                        "ВНИМАНИЕ: Взнос за заказ (%.2f руб.) НЕ ВОЗВРАЩАЕТСЯ!",
+                order.getId(), order.getPrice() / 2));
+
+        builder.setPositiveButton("Отказаться", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                cancelOrder(order);
+            }
+        });
+
+        builder.setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        builder.show();
     }
 
     private void loadAvailableOrders() {
@@ -151,16 +219,25 @@ public class CourierActivity extends AppCompatActivity {
     }
 
     private void acceptOrder(final Order order) {
+        final double deposit = order.getPrice() / 2;
+
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final boolean success = courierOrderUsecase.acceptOrder(order.getId(), currentUser.getId());
+                final boolean success = courierOrderUsecase.acceptOrder(order.getId(), currentUser.getId(), order.getPrice());
 
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         if (success) {
-                            Toast.makeText(CourierActivity.this, "Заказ принят!", Toast.LENGTH_SHORT).show();
+                            // Обновляем баланс в объекте пользователя
+                            double newBalance = currentUser.getBalance() - deposit;
+                            currentUser.setBalance(newBalance);
+
+                            Toast.makeText(CourierActivity.this,
+                                    String.format("Заказ принят! С баланса списано %.2f руб.", deposit),
+                                    Toast.LENGTH_LONG).show();
+
                             // Обновляем текущий список
                             if (rgOrderType.getCheckedRadioButtonId() == R.id.rb_available_orders) {
                                 loadAvailableOrders();
@@ -168,7 +245,14 @@ public class CourierActivity extends AppCompatActivity {
                                 loadMyOrders();
                             }
                         } else {
-                            Toast.makeText(CourierActivity.this, "Ошибка при принятии заказа", Toast.LENGTH_SHORT).show();
+                            // Проверяем причину ошибки
+                            if (currentUser.getBalance() < deposit) {
+                                Toast.makeText(CourierActivity.this,
+                                        "Недостаточно средств на балансе! Пополните баланс в профиле.",
+                                        Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(CourierActivity.this, "Ошибка при принятии заказа", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     }
                 });
@@ -186,7 +270,10 @@ public class CourierActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (success) {
-                            Toast.makeText(CourierActivity.this, "Заказ отменен!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(CourierActivity.this,
+                                    "Заказ отменен! Взнос не возвращен.",
+                                    Toast.LENGTH_LONG).show();
+
                             if (rgOrderType.getCheckedRadioButtonId() == R.id.rb_available_orders) {
                                 loadAvailableOrders();
                             } else {
@@ -201,9 +288,48 @@ public class CourierActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void openOrderDetail(Order order) {
+        Intent intent = new Intent(CourierActivity.this, OrderDetailActivity.class);
+        intent.putExtra("order", order);
+        intent.putExtra("user", currentUser);
+        intent.putExtra("userType", "courier");
+        startActivityForResult(intent, 100);
+    }
+
+    // Добавьте onActivityResult для обновления списка после возврата
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 100 && resultCode == RESULT_OK) {
+            if (rgOrderType.getCheckedRadioButtonId() == R.id.rb_available_orders) {
+                loadAvailableOrders();
+            } else {
+                loadMyOrders();
+            }
+        }
+    }
+
+
     @Override
     protected void onResume() {
         super.onResume();
+        // Обновляем баланс пользователя при возвращении на экран
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                com.example.courierapp.data.AuthRepository authRepo = new com.example.courierapp.data.AuthRepository();
+                final User updatedUser = authRepo.getUserById(currentUser.getId());
+                if (updatedUser != null) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            currentUser.setBalance(updatedUser.getBalance());
+                        }
+                    });
+                }
+            }
+        }).start();
+
         if (rgOrderType.getCheckedRadioButtonId() == R.id.rb_available_orders) {
             loadAvailableOrders();
         } else {

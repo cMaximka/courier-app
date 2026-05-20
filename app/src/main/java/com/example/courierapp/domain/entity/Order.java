@@ -70,9 +70,10 @@ public class Order implements Serializable {
 
     public String getStatusText() {
         switch (status) {
-            case 1: return "Ожидает курьера";
-            case 2: return "В пути";
-            case 3: return "Доставлен";
+            case 1: return "Курьер не назначен";
+            case 2: return "Ожидайте курьера";
+            case 3: return "Отдайте заказ курьеру";
+            case 4: return "В пути";
             default: return "Неизвестно";
         }
     }

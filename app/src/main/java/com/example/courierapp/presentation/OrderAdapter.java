@@ -27,6 +27,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     public interface OnOrderActionListener {
         void onAcceptClick(Order order);
         void onCancelClick(Order order);
+        void onItemClick(Order order);
     }
 
     public OrderAdapter(List<Order> orders) {
@@ -62,6 +63,16 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
     public void onBindViewHolder(@NonNull OrderViewHolder holder, int position) {
         Order order = orders.get(position);
         holder.bind(order);
+
+        // Обработчик клика по карточке
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (actionListener != null) {
+                    actionListener.onItemClick(order);
+                }
+            }
+        });
     }
 
     @Override
@@ -77,6 +88,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         private TextView tvWeight;
         private TextView tvDimensions;
         private TextView tvPrice;
+        private TextView tvDeposit;
         private TextView tvStatus;
         private TextView tvCreatedAt;
         private LinearLayout llButtons;
@@ -92,6 +104,7 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
             tvWeight = itemView.findViewById(R.id.tv_weight);
             tvDimensions = itemView.findViewById(R.id.tv_dimensions);
             tvPrice = itemView.findViewById(R.id.tv_price);
+            tvDeposit = itemView.findViewById(R.id.tv_deposit);
             tvStatus = itemView.findViewById(R.id.tv_status);
             tvCreatedAt = itemView.findViewById(R.id.tv_created_at);
             llButtons = itemView.findViewById(R.id.ll_buttons);
@@ -100,30 +113,33 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
         }
 
         public void bind(Order order) {
+            // Основная информация о заказе
             tvPickupAddress.setText("Откуда: " + order.getPickupAddress());
             tvDeliveryAddress.setText("Куда: " + order.getDeliveryAddress());
             tvWeight.setText(String.format("Вес: %.2f кг", order.getWeight()));
             tvDimensions.setText(String.format("Габариты: %.0f x %.0f x %.0f см",
                     order.getLength(), order.getWidth(), order.getHeight()));
             tvPrice.setText(String.format("Стоимость: %.2f руб", order.getPrice()));
+
+            // Отображение взноса (половина стоимости)
+            double deposit = order.getPrice() / 2;
+            tvDeposit.setText(String.format("Взнос за заказ: %.2f руб.", deposit));
+
+            // Статус заказа
             tvStatus.setText("Статус: " + order.getStatusText());
+            updateStatusColor(order.getStatus());
 
-            if (order.getStatus() == 1) {
-                tvStatus.setTextColor(0xFFF44336);
-            } else if (order.getStatus() == 2) {
-                tvStatus.setTextColor(0xFF4CAF50);
-            } else {
-                tvStatus.setTextColor(0xFF9E9E9E);
-            }
-
+            // Дата создания
             if (order.getCreatedAt() != null) {
                 tvCreatedAt.setText("Создан: " + order.getCreatedAt());
             }
 
-            // В зависимости от режима показываем разную информацию
+            // Настройка отображения в зависимости от режима
             if (mode == 0) {
                 // РЕЖИМ КЛИЕНТА - показываем только информацию о курьере
                 tvClientInfo.setVisibility(View.GONE);
+                tvDeposit.setVisibility(View.GONE); // Клиенту не показываем взнос
+
                 if (order.getCourierName() != null && !order.getCourierName().isEmpty()) {
                     tvCourierInfo.setText("Курьер: " + order.getCourierName() + " | Тел: " + order.getCourierPhone());
                     tvCourierInfo.setVisibility(View.VISIBLE);
@@ -133,17 +149,16 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 llButtons.setVisibility(View.GONE);
 
             } else if (mode == 1) {
-                // РЕЖИМ КУРЬЕРА - Доступные заказы - показываем информацию о клиенте
+                // РЕЖИМ КУРЬЕРА - Доступные заказы
+                // НЕ показываем информацию о клиенте
                 tvCourierInfo.setVisibility(View.GONE);
-                if (order.getClientName() != null && !order.getClientName().isEmpty()) {
-                    tvClientInfo.setText("Клиент: " + order.getClientName() + " | Тел: " + order.getClientPhone());
-                    tvClientInfo.setVisibility(View.VISIBLE);
-                } else {
-                    tvClientInfo.setVisibility(View.GONE);
-                }
+                tvClientInfo.setVisibility(View.GONE); // Скрываем информацию о клиенте
+                tvDeposit.setVisibility(View.VISIBLE); // Показываем взнос курьеру
+
                 llButtons.setVisibility(View.VISIBLE);
                 btnAccept.setVisibility(View.VISIBLE);
                 btnCancel.setVisibility(View.GONE);
+
                 btnAccept.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -154,17 +169,22 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 });
 
             } else if (mode == 2) {
-                // РЕЖИМ КУРЬЕРА - Мои заказы - показываем информацию о клиенте
+                // РЕЖИМ КУРЬЕРА - Мои заказы (принятые)
+                // Показываем информацию о клиенте
                 tvCourierInfo.setVisibility(View.GONE);
+                tvDeposit.setVisibility(View.VISIBLE); // Показываем взнос курьеру
+
                 if (order.getClientName() != null && !order.getClientName().isEmpty()) {
                     tvClientInfo.setText("Клиент: " + order.getClientName() + " | Тел: " + order.getClientPhone());
                     tvClientInfo.setVisibility(View.VISIBLE);
                 } else {
                     tvClientInfo.setVisibility(View.GONE);
                 }
+
                 llButtons.setVisibility(View.VISIBLE);
                 btnAccept.setVisibility(View.GONE);
                 btnCancel.setVisibility(View.VISIBLE);
+
                 btnCancel.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -173,6 +193,26 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                         }
                     }
                 });
+            }
+        }
+
+        private void updateStatusColor(int status) {
+            switch (status) {
+                case 1: // Курьер не назначен
+                    tvStatus.setTextColor(0xFFF44336); // Красный
+                    break;
+                case 2: // Ожидайте курьера
+                    tvStatus.setTextColor(0xFFFF9800); // Оранжевый
+                    break;
+                case 3: // Отдайте заказ курьеру
+                    tvStatus.setTextColor(0xFF2196F3); // Синий
+                    break;
+                case 4: // В пути
+                    tvStatus.setTextColor(0xFF4CAF50); // Зелёный
+                    break;
+                default:
+                    tvStatus.setTextColor(0xFF9E9E9E); // Серый
+                    break;
             }
         }
     }

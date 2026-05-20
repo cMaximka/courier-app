@@ -4,6 +4,7 @@ import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Order;
 
 import java.util.List;
+
 public class CourierOrderUsecase {
     private final OrderRepository repository;
 
@@ -19,10 +20,12 @@ public class CourierOrderUsecase {
         return repository.getOrdersByCourierId(courierId);
     }
 
-    public boolean acceptOrder(String orderId, String courierId) {
-        return repository.acceptOrder(orderId, courierId);
+    // Принять заказ со списанием средств
+    public boolean acceptOrder(String orderId, String courierId, double price) {
+        return repository.acceptOrderWithPayment(orderId, courierId, price);
     }
 
+    // Отменить заказ (без возврата)
     public boolean cancelOrder(String orderId) {
         return repository.cancelOrder(orderId);
     }

@@ -17,6 +17,9 @@
             android:name=".presentation.ProfileActivity"
             android:exported="false" />
         <activity
+            android:name=".presentation.OrderDetailActivity"
+            android:exported="false" />
+        <activity
             android:name=".presentation.OrderAdapter"
             android:exported="false" />
         <activity

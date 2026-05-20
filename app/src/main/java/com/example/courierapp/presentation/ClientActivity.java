@@ -77,7 +77,18 @@ public class ClientActivity extends AppCompatActivity {
             }
         });
 
-        orderAdapter = new OrderAdapter(ordersList);
+        // ИСПРАВЛЕНО: Создаём адаптер ОДИН раз, с правильным слушателем
+        orderAdapter = new OrderAdapter(ordersList, new OrderAdapter.OnOrderActionListener() {
+            @Override
+            public void onAcceptClick(Order order) { }
+            @Override
+            public void onCancelClick(Order order) { }
+            @Override
+            public void onItemClick(Order order) {
+                openOrderDetail(order);
+            }
+        }, 0);
+
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         rvOrders.setAdapter(orderAdapter);
 
@@ -106,10 +117,21 @@ public class ClientActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void openOrderDetail(Order order) {
+        Intent intent = new Intent(ClientActivity.this, OrderDetailActivity.class);
+        intent.putExtra("order", order);
+        intent.putExtra("user", currentUser);
+        intent.putExtra("userType", "client");
+        startActivityForResult(intent, 101);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1 && resultCode == RESULT_OK) {
+            loadOrders();
+        }
+        if ((requestCode == 101 || requestCode == 100) && resultCode == RESULT_OK) {
             loadOrders();
         }
     }

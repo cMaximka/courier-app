@@ -86,6 +86,16 @@
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tv_deposit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:visibility="gone"
+            android:textStyle="bold" />
+
+
+        <TextView
             android:id="@+id/tv_created_at"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -121,9 +131,9 @@
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
                 android:text="Отменить"
-                android:backgroundTint="#F44336"
+                android:backgroundTint="#8B0000"
                 android:textColor="#FFFFFF"
-                android:drawableStart="@android:drawable/ic_menu_delete"
+                android:drawableStart="@drawable/ic_launcher_foreground"
                 android:drawablePadding="8dp" />
 
         </LinearLayout>
