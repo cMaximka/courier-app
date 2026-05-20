@@ -17,7 +17,7 @@ public class Client extends User {
     }
 
     @Override
-    public String getUserType() {
-        return "Клиент";
+    public int getUserType() {
+        return 1;
     }
 }

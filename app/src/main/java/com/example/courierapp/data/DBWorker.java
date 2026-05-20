@@ -5,7 +5,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DBWorker {
-    private static final String URL = "jdbc:mysql://10.0.2.2:3306/delivery";
+    private static final String URL = "jdbc:mysql://192.168.50.140:3306/delivery";
 
     public static Connection getConnection() {
         Connection connection = null;

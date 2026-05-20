@@ -40,6 +40,7 @@ android {
 
 dependencies {
     implementation(libs.recyclerview)
+    implementation("com.google.android.material:material:1.9.0")
     implementation("mysql:mysql-connector-java:5.1.49")
     implementation(libs.activity.ktx)
     implementation(libs.appcompat)

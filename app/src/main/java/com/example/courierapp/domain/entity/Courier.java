@@ -27,7 +27,7 @@ public class Courier extends User {
     }
 
     @Override
-    public String getUserType() {
-        return "Курьер";
+    public int getUserType() {
+        return 2;
     }
 }

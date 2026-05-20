@@ -1,26 +1,179 @@
 package com.example.courierapp.presentation;
 
-import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.courierapp.R;
+import com.example.courierapp.domain.entity.Order;
 
-public class OrderAdapter extends AppCompatActivity {
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Locale;
+
+public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHolder> {
+
+    private List<Order> orders;
+    private OnOrderActionListener actionListener;
+    private int mode; // 0 - для клиента, 1 - для курьера (доступные), 2 - для курьера (мои)
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+
+    public interface OnOrderActionListener {
+        void onAcceptClick(Order order);
+        void onCancelClick(Order order);
+    }
+
+    public OrderAdapter(List<Order> orders) {
+        this.orders = orders;
+        this.actionListener = null;
+        this.mode = 0;
+    }
+
+    public OrderAdapter(List<Order> orders, OnOrderActionListener listener, int mode) {
+        this.orders = orders;
+        this.actionListener = listener;
+        this.mode = mode;
+    }
+
+    public void updateMode(int newMode) {
+        this.mode = newMode;
+        notifyDataSetChanged();
+    }
+
+    public void updateOrders(List<Order> newOrders) {
+        this.orders = newOrders;
+        notifyDataSetChanged();
+    }
+
+    @NonNull
+    @Override
+    public OrderViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_order, parent, false);
+        return new OrderViewHolder(view);
+    }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.item_order);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+    public void onBindViewHolder(@NonNull OrderViewHolder holder, int position) {
+        Order order = orders.get(position);
+        holder.bind(order);
+    }
+
+    @Override
+    public int getItemCount() {
+        return orders == null ? 0 : orders.size();
+    }
+
+    class OrderViewHolder extends RecyclerView.ViewHolder {
+        private TextView tvClientInfo;
+        private TextView tvCourierInfo;
+        private TextView tvPickupAddress;
+        private TextView tvDeliveryAddress;
+        private TextView tvWeight;
+        private TextView tvDimensions;
+        private TextView tvPrice;
+        private TextView tvStatus;
+        private TextView tvCreatedAt;
+        private LinearLayout llButtons;
+        private Button btnAccept;
+        private Button btnCancel;
+
+        public OrderViewHolder(@NonNull View itemView) {
+            super(itemView);
+            tvClientInfo = itemView.findViewById(R.id.tv_client_info);
+            tvCourierInfo = itemView.findViewById(R.id.tv_courier_info);
+            tvPickupAddress = itemView.findViewById(R.id.tv_pickup_address);
+            tvDeliveryAddress = itemView.findViewById(R.id.tv_delivery_address);
+            tvWeight = itemView.findViewById(R.id.tv_weight);
+            tvDimensions = itemView.findViewById(R.id.tv_dimensions);
+            tvPrice = itemView.findViewById(R.id.tv_price);
+            tvStatus = itemView.findViewById(R.id.tv_status);
+            tvCreatedAt = itemView.findViewById(R.id.tv_created_at);
+            llButtons = itemView.findViewById(R.id.ll_buttons);
+            btnAccept = itemView.findViewById(R.id.btn_accept);
+            btnCancel = itemView.findViewById(R.id.btn_cancel);
+        }
+
+        public void bind(Order order) {
+            tvPickupAddress.setText("Откуда: " + order.getPickupAddress());
+            tvDeliveryAddress.setText("Куда: " + order.getDeliveryAddress());
+            tvWeight.setText(String.format("Вес: %.2f кг", order.getWeight()));
+            tvDimensions.setText(String.format("Габариты: %.0f x %.0f x %.0f см",
+                    order.getLength(), order.getWidth(), order.getHeight()));
+            tvPrice.setText(String.format("Стоимость: %.2f руб", order.getPrice()));
+            tvStatus.setText("Статус: " + order.getStatusText());
+
+            if (order.getStatus() == 1) {
+                tvStatus.setTextColor(0xFFF44336);
+            } else if (order.getStatus() == 2) {
+                tvStatus.setTextColor(0xFF4CAF50);
+            } else {
+                tvStatus.setTextColor(0xFF9E9E9E);
+            }
+
+            if (order.getCreatedAt() != null) {
+                tvCreatedAt.setText("Создан: " + order.getCreatedAt());
+            }
+
+            // В зависимости от режима показываем разную информацию
+            if (mode == 0) {
+                // РЕЖИМ КЛИЕНТА - показываем только информацию о курьере
+                tvClientInfo.setVisibility(View.GONE);
+                if (order.getCourierName() != null && !order.getCourierName().isEmpty()) {
+                    tvCourierInfo.setText("Курьер: " + order.getCourierName() + " | Тел: " + order.getCourierPhone());
+                    tvCourierInfo.setVisibility(View.VISIBLE);
+                } else {
+                    tvCourierInfo.setVisibility(View.GONE);
+                }
+                llButtons.setVisibility(View.GONE);
+
+            } else if (mode == 1) {
+                // РЕЖИМ КУРЬЕРА - Доступные заказы - показываем информацию о клиенте
+                tvCourierInfo.setVisibility(View.GONE);
+                if (order.getClientName() != null && !order.getClientName().isEmpty()) {
+                    tvClientInfo.setText("Клиент: " + order.getClientName() + " | Тел: " + order.getClientPhone());
+                    tvClientInfo.setVisibility(View.VISIBLE);
+                } else {
+                    tvClientInfo.setVisibility(View.GONE);
+                }
+                llButtons.setVisibility(View.VISIBLE);
+                btnAccept.setVisibility(View.VISIBLE);
+                btnCancel.setVisibility(View.GONE);
+                btnAccept.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (actionListener != null) {
+                            actionListener.onAcceptClick(order);
+                        }
+                    }
+                });
+
+            } else if (mode == 2) {
+                // РЕЖИМ КУРЬЕРА - Мои заказы - показываем информацию о клиенте
+                tvCourierInfo.setVisibility(View.GONE);
+                if (order.getClientName() != null && !order.getClientName().isEmpty()) {
+                    tvClientInfo.setText("Клиент: " + order.getClientName() + " | Тел: " + order.getClientPhone());
+                    tvClientInfo.setVisibility(View.VISIBLE);
+                } else {
+                    tvClientInfo.setVisibility(View.GONE);
+                }
+                llButtons.setVisibility(View.VISIBLE);
+                btnAccept.setVisibility(View.GONE);
+                btnCancel.setVisibility(View.VISIBLE);
+                btnCancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (actionListener != null) {
+                            actionListener.onCancelClick(order);
+                        }
+                    }
+                });
+            }
+        }
     }
 }

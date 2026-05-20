@@ -1,11 +1,15 @@
 package com.example.courierapp.domain.entity;
 
-public abstract class User {
+import java.io.Serializable;
+
+public abstract class User implements Serializable {
     private String id;
     private String fullName;
     private String login;
     private String phone;
     private String password;
+
+    private double balance;
 
     public User(String fullName, String login, String phone, String password) {
         this.fullName = fullName;
@@ -54,5 +58,8 @@ public abstract class User {
         this.password = password;
     }
 
-    public abstract String getUserType();
+    public double getBalance() { return balance; }
+    public void setBalance(double balance) { this.balance = balance; }
+
+    public abstract int getUserType();
 }

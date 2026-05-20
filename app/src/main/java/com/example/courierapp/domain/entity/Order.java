@@ -1,84 +1,114 @@
 package com.example.courierapp.domain.entity;
 
-public class Order {
+import java.io.Serializable;
+
+public class Order implements Serializable {
     private String id;
     private String clientId;
     private String courierId;
     private String pickupAddress;
     private String deliveryAddress;
-    private String status;
+    private int status; // 1 = Ожидает курьера, 2 = В пути (принят курьером), 3 = Доставлен
     private double price;
     private String createdAt;
 
-    public Order(String clientId, String pickupAddress, String deliveryAddress, double price) {
+    // Информация о клиенте (для курьера) - только для отображения
+    private String clientName;
+    private String clientPhone;
+
+    // Информация о курьере (для клиента) - только для отображения
+    private String courierName;
+    private String courierPhone;
+
+    // Поля для расчета цены
+    private double weight;
+    private double length;
+    private double width;
+    private double height;
+    private double productPrice;
+
+    public Order(String clientId, String pickupAddress, String deliveryAddress,
+                 double weight, double length, double width, double height, double productPrice) {
         this.clientId = clientId;
         this.pickupAddress = pickupAddress;
         this.deliveryAddress = deliveryAddress;
-        this.price = price;
-        this.status = "Ожидает курьера";
+        this.weight = weight;
+        this.length = length;
+        this.width = width;
+        this.height = height;
+        this.productPrice = productPrice;
+        this.status = 1;
+        this.price = calculatePrice();
     }
 
-    public String getId() {
-        return id;
+    private double calculatePrice() {
+        double basePrice = 100.0;
+        double weightCoeff = weight * 20;
+        double volume = (length * width * height) / 1000;
+        double volumeCoeff = volume * 10;
+        double insuranceCoeff = productPrice * 0.02;
+        return basePrice + weightCoeff + volumeCoeff + insuranceCoeff;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    // Геттеры и сеттеры
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public String getClientId() { return clientId; }
+    public void setClientId(String clientId) { this.clientId = clientId; }
+
+    public String getCourierId() { return courierId; }
+    public void setCourierId(String courierId) { this.courierId = courierId; }
+
+    public String getPickupAddress() { return pickupAddress; }
+    public void setPickupAddress(String pickupAddress) { this.pickupAddress = pickupAddress; }
+
+    public String getDeliveryAddress() { return deliveryAddress; }
+    public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
+
+    public int getStatus() { return status; }
+
+    public String getStatusText() {
+        switch (status) {
+            case 1: return "Ожидает курьера";
+            case 2: return "В пути";
+            case 3: return "Доставлен";
+            default: return "Неизвестно";
+        }
     }
 
-    public String getClientId() {
-        return clientId;
-    }
+    public void setStatus(int status) { this.status = status; }
 
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
+    public double getPrice() { return price; }
+    public void setPrice(double price) { this.price = price; }
 
-    public String getCourierId() {
-        return courierId;
-    }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 
-    public void setCourierId(String courierId) {
-        this.courierId = courierId;
-    }
+    public double getWeight() { return weight; }
+    public void setWeight(double weight) { this.weight = weight; }
 
-    public String getPickupAddress() {
-        return pickupAddress;
-    }
+    public double getLength() { return length; }
+    public void setLength(double length) { this.length = length; }
 
-    public void setPickupAddress(String pickupAddress) {
-        this.pickupAddress = pickupAddress;
-    }
+    public double getWidth() { return width; }
+    public void setWidth(double width) { this.width = width; }
 
-    public String getDeliveryAddress() {
-        return deliveryAddress;
-    }
+    public double getHeight() { return height; }
+    public void setHeight(double height) { this.height = height; }
 
-    public void setDeliveryAddress(String deliveryAddress) {
-        this.deliveryAddress = deliveryAddress;
-    }
+    public double getProductPrice() { return productPrice; }
+    public void setProductPrice(double productPrice) { this.productPrice = productPrice; }
 
-    public String getStatus() {
-        return status;
-    }
+    public String getClientName() { return clientName; }
+    public void setClientName(String clientName) { this.clientName = clientName; }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public String getClientPhone() { return clientPhone; }
+    public void setClientPhone(String clientPhone) { this.clientPhone = clientPhone; }
 
-    public double getPrice() {
-        return price;
-    }
+    public String getCourierName() { return courierName; }
+    public void setCourierName(String courierName) { this.courierName = courierName; }
 
-    public void setPrice(double price) {
-        this.price = price;
-    }
-
-    public String getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(String createdAt) {
-        this.createdAt = createdAt;
-    }
+    public String getCourierPhone() { return courierPhone; }
+    public void setCourierPhone(String courierPhone) { this.courierPhone = courierPhone; }
 }
