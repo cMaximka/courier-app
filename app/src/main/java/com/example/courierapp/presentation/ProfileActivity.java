@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.courierapp.R;
 import com.example.courierapp.data.AuthRepository;
+import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Client;
 import com.example.courierapp.domain.entity.Courier;
 import com.example.courierapp.domain.entity.Order;
@@ -113,24 +114,26 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void loadOrderHistory() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<Order> orders = getOrdersUsecase.getOrdersByClientId(currentUser.getId());
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ordersList.clear();
-                        ordersList.addAll(orders);
-                        orderAdapter.updateOrders(ordersList);
-
-                        if (ordersList.isEmpty()) {
-                            Toast.makeText(ProfileActivity.this, "У вас пока нет заказов", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+        new Thread(() -> {
+            OrderRepository orderRepository = new OrderRepository();
+            List<Order> orders;
+            if (currentUser instanceof Client) {
+                orders = orderRepository.getCompletedOrdersByClientId(currentUser.getId());
+            } else if (currentUser instanceof Courier) {
+                orders = orderRepository.getCompletedOrdersByCourierId(currentUser.getId());
+            } else {
+                orders = new ArrayList<>();
             }
+
+            List<Order> finalOrders = orders;
+            runOnUiThread(() -> {
+                ordersList.clear();
+                ordersList.addAll(finalOrders);
+                orderAdapter.updateOrders(ordersList);
+                if (ordersList.isEmpty()) {
+                    Toast.makeText(ProfileActivity.this, "Нет завершённых заказов", Toast.LENGTH_SHORT).show();
+                }
+            });
         }).start();
     }
 

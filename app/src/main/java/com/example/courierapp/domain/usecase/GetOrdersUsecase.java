@@ -11,8 +11,4 @@ public class GetOrdersUsecase {
     public GetOrdersUsecase() {
         this.repository = new OrderRepository();
     }
-
-    public List<Order> getOrdersByClientId(String clientId) {
-        return repository.getOrdersByClientId(clientId);
-    }
 }

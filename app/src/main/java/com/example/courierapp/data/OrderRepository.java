@@ -6,294 +6,336 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class OrderRepository {
 
-    // Создание заказа
+    // ========== СОЗДАНИЕ ЗАКАЗА (исправлено: NOW() вместо datetime('now')) ==========
     public boolean createOrder(Order order) {
-        Connection conn = DBWorker.getConnection();
-        if (conn == null) return false;
+        // Поля: client_id, pickup_address, delivery_address, weight, length, width, height, product_price, price, status, created_at
+        // Значения: 10 параметров (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        String sql = "INSERT INTO orders (client_id, pickup_address, delivery_address, " +
+                "weight, length, width, height, product_price, price, status, created_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
 
-        String query = "INSERT INTO orders (client_id, pickup_address, delivery_address, status, price, weight, length, width, height, product_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS);
-            stmt.setString(1, order.getClientId());
-            stmt.setString(2, order.getPickupAddress());
-            stmt.setString(3, order.getDeliveryAddress());
-            stmt.setInt(4, order.getStatus());
-            stmt.setDouble(5, order.getPrice());
-            stmt.setDouble(6, order.getWeight());
-            stmt.setDouble(7, order.getLength());
-            stmt.setDouble(8, order.getWidth());
-            stmt.setDouble(9, order.getHeight());
-            stmt.setDouble(10, order.getProductPrice());
+            pstmt.setString(1, order.getClientId());
+            pstmt.setString(2, order.getPickupAddress());
+            pstmt.setString(3, order.getDeliveryAddress());
+            pstmt.setDouble(4, order.getWeight());
+            pstmt.setDouble(5, order.getLength());
+            pstmt.setDouble(6, order.getWidth());
+            pstmt.setDouble(7, order.getHeight());
+            pstmt.setDouble(8, order.getProductPrice());
+            pstmt.setDouble(9, order.getPrice());
+            pstmt.setInt(10, order.getStatus());
 
-            int affectedRows = stmt.executeUpdate();
-
-            if (affectedRows > 0) {
-                ResultSet generatedKeys = stmt.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    order.setId(String.valueOf(generatedKeys.getLong(1)));
-                    return true;
+            int affected = pstmt.executeUpdate();
+            if (affected > 0) {
+                ResultSet rs = pstmt.getGeneratedKeys();
+                if (rs.next()) {
+                    order.setId(String.valueOf(rs.getLong(1))); // Преобразуем числовой ID в строку
                 }
+                return true;
             }
             return false;
-
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка создания заказа", e);
+            e.printStackTrace();
             return false;
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
-
-    // Получение заказов клиента
-    public List<Order> getOrdersByClientId(String clientId) {
-        Connection conn = DBWorker.getConnection();
+    public List<Order> getActiveOrdersByClientId(String clientId) {
         List<Order> orders = new ArrayList<>();
-        if (conn == null) return orders;
-
-        String query = "SELECT o.*, " +
-                "c.full_name as client_name, c.phone as client_phone, " +
-                "cr.full_name as courier_name, cr.phone as courier_phone " +
+        String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
+                "o.status, o.price, o.created_at, " +
+                "o.weight, o.length, o.width, o.height, o.product_price, " +
+                "c.full_name AS client_name, c.phone AS client_phone, " +
+                "cou.full_name AS courier_name, cou.phone AS courier_phone " +
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
-                "LEFT JOIN users cr ON o.courier_id = cr.id " +
-                "WHERE o.client_id = ? ORDER BY o.created_at DESC";
+                "LEFT JOIN users cou ON o.courier_id = cou.id " +
+                "WHERE o.client_id = ? AND o.status != 5 ORDER BY o.created_at DESC";
 
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, clientId);
-            ResultSet rs = stmt.executeQuery();
-
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, clientId);
+            ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                Order order = createOrderFromResultSet(rs);
-                orders.add(order);
+                orders.add(mapOrderFromResultSet(rs));
             }
-
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка получения заказов клиента", e);
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            e.printStackTrace();
         }
         return orders;
     }
 
-    // Получение всех доступных заказов
+    public List<Order> getCompletedOrdersByCourierId(String courierId) {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
+                "o.status, o.price, o.created_at, " +
+                "o.weight, o.length, o.width, o.height, o.product_price, " +
+                "c.full_name AS client_name, c.phone AS client_phone, " +
+                "cou.full_name AS courier_name, cou.phone AS courier_phone " +
+                "FROM orders o " +
+                "LEFT JOIN users c ON o.client_id = c.id " +
+                "LEFT JOIN users cou ON o.courier_id = cou.id " +
+                "WHERE o.courier_id = ? AND o.status = 5 ORDER BY o.created_at DESC";
+
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, courierId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                orders.add(mapOrderFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
+
+    // ========== ДОСТУПНЫЕ ЗАКАЗЫ ДЛЯ КУРЬЕРА ==========
     public List<Order> getAllAvailableOrders() {
-        Connection conn = DBWorker.getConnection();
         List<Order> orders = new ArrayList<>();
-        if (conn == null) return orders;
-
-        String query = "SELECT o.*, " +
-                "c.full_name as client_name, c.phone as client_phone " +
+        String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
+                "o.status, o.price, o.created_at, " +
+                "o.weight, o.length, o.width, o.height, o.product_price, " +
+                "c.full_name AS client_name, c.phone AS client_phone, " +
+                "cou.full_name AS courier_name, cou.phone AS courier_phone " +
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
-                "WHERE o.status = 1 ORDER BY o.created_at DESC";
+                "LEFT JOIN users cou ON o.courier_id = cou.id " +
+                "WHERE o.status = 1 AND o.courier_id IS NULL " +
+                "ORDER BY o.created_at ASC";
 
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            ResultSet rs = stmt.executeQuery();
+        try (Connection conn = DBWorker.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                Order order = createOrderFromResultSet(rs);
+                Order order = mapOrderFromResultSet(rs);
                 orders.add(order);
             }
-
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка получения доступных заказов", e);
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            e.printStackTrace();
         }
         return orders;
     }
 
-    // Получение заказов курьера (статусы 2, 3, 4 - все принятые)
+    // ========== ЗАКАЗЫ КОНКРЕТНОГО КУРЬЕРА ==========
     public List<Order> getOrdersByCourierId(String courierId) {
-        Connection conn = DBWorker.getConnection();
         List<Order> orders = new ArrayList<>();
-        if (conn == null) return orders;
-
-        String query = "SELECT o.*, " +
-                "c.full_name as client_name, c.phone as client_phone " +
+        String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
+                "o.status, o.price, o.created_at, " +
+                "o.weight, o.length, o.width, o.height, o.product_price, " +
+                "c.full_name AS client_name, c.phone AS client_phone, " +
+                "cou.full_name AS courier_name, cou.phone AS courier_phone " +
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
-                "WHERE o.courier_id = ? AND o.status IN (2, 3, 4) ORDER BY o.created_at DESC";
+                "LEFT JOIN users cou ON o.courier_id = cou.id " +
+                "WHERE o.courier_id = ? AND o.status != 5 ORDER BY o.created_at DESC";
 
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, courierId);
-            ResultSet rs = stmt.executeQuery();
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, courierId);
+            ResultSet rs = pstmt.executeQuery();
 
             while (rs.next()) {
-                Order order = createOrderFromResultSet(rs);
+                Order order = mapOrderFromResultSet(rs);
                 orders.add(order);
             }
-
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка получения заказов курьера", e);
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            e.printStackTrace();
         }
         return orders;
     }
 
-    // Принятие заказа со списанием баланса
+    // ========== ПРИНЯТЬ ЗАКАЗ (с проверкой баланса) ==========
     public boolean acceptOrderWithPayment(String orderId, String courierId, double price) {
-        Connection conn = DBWorker.getConnection();
-        if (conn == null) return false;
+        double deposit = price / 2.0;
 
-        double deposit = price / 2;
+        String checkBalanceSql = "SELECT balance FROM users WHERE id = ? AND balance >= ?";
+        String updateOrderSql = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
+        String deductBalanceSql = "UPDATE users SET balance = balance - ? WHERE id = ?";
 
-        try {
+        try (Connection conn = DBWorker.getConnection()) {
             conn.setAutoCommit(false);
 
-            String checkBalanceQuery = "SELECT balance FROM users WHERE id = ? FOR UPDATE";
-            PreparedStatement checkStmt = conn.prepareStatement(checkBalanceQuery);
-            checkStmt.setString(1, courierId);
-            ResultSet rs = checkStmt.executeQuery();
-
-            if (!rs.next()) {
-                conn.rollback();
-                return false;
+            // 1. Проверка баланса
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkBalanceSql)) {
+                checkStmt.setString(1, courierId);
+                checkStmt.setDouble(2, deposit);
+                ResultSet rs = checkStmt.executeQuery();
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;   // недостаточно средств
+                }
             }
 
-            double currentBalance = rs.getDouble("balance");
-            if (currentBalance < deposit) {
-                conn.rollback();
-                android.util.Log.e("ORDER_REPO", "Недостаточно средств. Нужно: " + deposit + ", доступно: " + currentBalance);
-                return false;
+            // 2. Списание средств
+            try (PreparedStatement deductStmt = conn.prepareStatement(deductBalanceSql)) {
+                deductStmt.setDouble(1, deposit);
+                deductStmt.setString(2, courierId);
+                deductStmt.executeUpdate();
             }
 
-            String updateBalanceQuery = "UPDATE users SET balance = balance - ? WHERE id = ?";
-            PreparedStatement balanceStmt = conn.prepareStatement(updateBalanceQuery);
-            balanceStmt.setDouble(1, deposit);
-            balanceStmt.setString(2, courierId);
-            balanceStmt.executeUpdate();
-
-            String updateOrderQuery = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
-            PreparedStatement orderStmt = conn.prepareStatement(updateOrderQuery);
-            orderStmt.setString(1, courierId);
-            orderStmt.setString(2, orderId);
-            int affectedRows = orderStmt.executeUpdate();
-
-            if (affectedRows > 0) {
-                conn.commit();
-                return true;
-            } else {
-                conn.rollback();
-                return false;
+            // 3. Обновление заказа (только два параметра!)
+            try (PreparedStatement orderStmt = conn.prepareStatement(updateOrderSql)) {
+                orderStmt.setString(1, courierId);   // первый параметр
+                orderStmt.setString(2, orderId);     // второй параметр
+                int affected = orderStmt.executeUpdate();
+                if (affected == 0) {
+                    conn.rollback();
+                    return false;
+                }
             }
 
+            conn.commit();
+            return true;
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка принятия заказа", e);
-            try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
             return false;
-        } finally {
-            try {
-                conn.setAutoCommit(true);
-                if (conn != null) conn.close();
-            } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
-    // Отмена заказа (без возврата средств)
+    // ========== ЗАВЕРШЁННЫЕ ЗАКАЗЫ КЛИЕНТА (для истории) ==========
+    public List<Order> getCompletedOrdersByClientId(String clientId) {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
+                "o.status, o.price, o.created_at, " +
+                "o.weight, o.length, o.width, o.height, o.product_price, " +
+                "c.full_name AS client_name, c.phone AS client_phone, " +
+                "cou.full_name AS courier_name, cou.phone AS courier_phone " +
+                "FROM orders o " +
+                "LEFT JOIN users c ON o.client_id = c.id " +
+                "LEFT JOIN users cou ON o.courier_id = cou.id " +
+                "WHERE o.client_id = ? AND o.status = 5 ORDER BY o.created_at DESC";
+
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, clientId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                orders.add(mapOrderFromResultSet(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
+
+    public boolean completeOrderWithPayment(String orderId, String clientId, String courierId, double price) {
+        String deductFromClientSql = "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?";
+        String addToCourierSql = "UPDATE users SET balance = balance + ? WHERE id = ?";
+        String updateOrderSql = "UPDATE orders SET status = 5 WHERE id = ? AND status = 4";
+
+        try (Connection conn = DBWorker.getConnection()) {
+            conn.setAutoCommit(false);
+
+            // 1. Списание полной стоимости с клиента (если достаточно средств)
+            try (PreparedStatement deductStmt = conn.prepareStatement(deductFromClientSql)) {
+                deductStmt.setDouble(1, price);
+                deductStmt.setString(2, clientId);
+                deductStmt.setDouble(3, price);
+                int affected = deductStmt.executeUpdate();
+                if (affected == 0) {
+                    conn.rollback();
+                    return false; // недостаточно средств у клиента
+                }
+            }
+
+            // 2. Зачисление полной стоимости курьеру
+            try (PreparedStatement addStmt = conn.prepareStatement(addToCourierSql)) {
+                addStmt.setDouble(1, price);
+                addStmt.setString(2, courierId);
+                addStmt.executeUpdate();
+            }
+
+            // 3. Обновление статуса заказа на "Доставлен"
+            try (PreparedStatement orderStmt = conn.prepareStatement(updateOrderSql)) {
+                orderStmt.setString(1, orderId);
+                int affected = orderStmt.executeUpdate();
+                if (affected == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // ========== ОТМЕНИТЬ ЗАКАЗ ==========
     public boolean cancelOrder(String orderId) {
-        Connection conn = DBWorker.getConnection();
-        if (conn == null) return false;
+        String sql = "UPDATE orders SET courier_id = NULL, status = 1 WHERE id = ? AND status >= 2";
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-        String query = "UPDATE orders SET courier_id = NULL, status = 1 WHERE id = ? AND status = 2";
-
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, orderId);
-
-            int affectedRows = stmt.executeUpdate();
-            return affectedRows > 0;
-
+            pstmt.setString(1, orderId);
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка отмены заказа", e);
+            e.printStackTrace();
             return false;
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
-    // Обновление статуса заказа
+    // ========== ОБНОВЛЕНИЕ СТАТУСА ==========
     public boolean updateOrderStatus(String orderId, int newStatus) {
-        Connection conn = DBWorker.getConnection();
-        if (conn == null) return false;
+        String sql = "UPDATE orders SET status = ? WHERE id = ?";
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-        String query = "UPDATE orders SET status = ? WHERE id = ?";
-
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setInt(1, newStatus);
-            stmt.setString(2, orderId);
-
-            int affectedRows = stmt.executeUpdate();
-            return affectedRows > 0;
-
+            pstmt.setInt(1, newStatus);
+            pstmt.setString(2, orderId);
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
         } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка обновления статуса заказа", e);
+            e.printStackTrace();
             return false;
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
 
-    // Подтверждение клиентом (отдал заказ)
+    // ========== ПОДТВЕРЖДЕНИЕ КЛИЕНТОМ ==========
     public boolean confirmDeliveredByClient(String orderId) {
-        Connection conn = DBWorker.getConnection();
-        if (conn == null) return false;
-
-        String query = "UPDATE orders SET status = 4 WHERE id = ? AND status = 3";
-
-        try {
-            PreparedStatement stmt = conn.prepareStatement(query);
-            stmt.setString(1, orderId);
-
-            int affectedRows = stmt.executeUpdate();
-            return affectedRows > 0;
-
-        } catch (SQLException e) {
-            android.util.Log.e("ORDER_REPO", "Ошибка подтверждения получения заказа клиентом", e);
-            return false;
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
-        }
+        return updateOrderStatus(orderId, 4);
+    }
+    public boolean completeOrder(String orderId) {
+        return updateOrderStatus(orderId, 5);
     }
 
-    private Order createOrderFromResultSet(ResultSet rs) throws SQLException {
+    // ========== МАППИНГ ИЗ ResultSet ==========
+    private Order mapOrderFromResultSet(ResultSet rs) throws SQLException {
         Order order = new Order(
                 rs.getString("client_id"),
                 rs.getString("pickup_address"),
                 rs.getString("delivery_address"),
-                0, 0, 0, 0, 0
+                rs.getDouble("weight"),
+                rs.getDouble("length"),
+                rs.getDouble("width"),
+                rs.getDouble("height"),
+                rs.getDouble("product_price")
         );
         order.setId(rs.getString("id"));
+        order.setCourierId(rs.getString("courier_id"));
         order.setStatus(rs.getInt("status"));
         order.setPrice(rs.getDouble("price"));
         order.setCreatedAt(rs.getString("created_at"));
+
         order.setClientName(rs.getString("client_name"));
         order.setClientPhone(rs.getString("client_phone"));
-
-        try {
-            String courierName = rs.getString("courier_name");
-            String courierPhone = rs.getString("courier_phone");
-            if (courierName != null) {
-                order.setCourierName(courierName);
-                order.setCourierPhone(courierPhone);
-            }
-        } catch (SQLException e) { }
-
-        String courierId = rs.getString("courier_id");
-        if (courierId != null) {
-            order.setCourierId(courierId);
-        }
+        order.setCourierName(rs.getString("courier_name"));
+        order.setCourierPhone(rs.getString("courier_phone"));
 
         return order;
     }

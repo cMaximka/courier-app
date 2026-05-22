@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.courierapp.R;
+import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Order;
 import com.example.courierapp.domain.entity.User;
 import com.example.courierapp.domain.usecase.GetOrdersUsecase;
@@ -96,24 +97,16 @@ public class ClientActivity extends AppCompatActivity {
     }
 
     private void loadOrders() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final List<Order> orders = getOrdersUsecase.getOrdersByClientId(currentUser.getId());
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        ordersList.clear();
-                        ordersList.addAll(orders);
-                        orderAdapter.updateOrders(ordersList);
-
-                        if (ordersList.isEmpty()) {
-                            Toast.makeText(ClientActivity.this, "У вас пока нет заказов", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
-            }
+        new Thread(() -> {
+            List<Order> orders = new OrderRepository().getActiveOrdersByClientId(currentUser.getId());
+            runOnUiThread(() -> {
+                ordersList.clear();
+                ordersList.addAll(orders);
+                orderAdapter.updateOrders(ordersList);
+                if (ordersList.isEmpty()) {
+                    Toast.makeText(ClientActivity.this, "У вас нет активных заказов", Toast.LENGTH_SHORT).show();
+                }
+            });
         }).start();
     }
 

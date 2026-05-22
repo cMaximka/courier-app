@@ -29,4 +29,8 @@ public class CourierOrderUsecase {
     public boolean cancelOrder(String orderId) {
         return repository.cancelOrder(orderId);
     }
+
+    public boolean completeOrder(String orderId) {
+        return repository.completeOrder(orderId);
+    }
 }

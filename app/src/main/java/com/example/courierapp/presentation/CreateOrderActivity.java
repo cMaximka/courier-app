@@ -2,6 +2,8 @@ package com.example.courierapp.presentation;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -48,6 +50,9 @@ public class CreateOrderActivity extends AppCompatActivity {
         tvCalculatedPrice = findViewById(R.id.tv_calculated_price);
         btnCreate = findViewById(R.id.btn_create);
 
+        // Устанавливаем слушатели для автоматического пересчёта цены
+        setupPriceCalculation();
+
         btnCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -55,6 +60,48 @@ public class CreateOrderActivity extends AppCompatActivity {
             }
         });
     }
+
+    // ========== НОВЫЕ МЕТОДЫ ДЛЯ РАСЧЁТА СТОИМОСТИ ==========
+
+    private void setupPriceCalculation() {
+        TextWatcher watcher = new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                updateCalculatedPrice();
+            }
+        };
+        etWeight.addTextChangedListener(watcher);
+        etLength.addTextChangedListener(watcher);
+        etWidth.addTextChangedListener(watcher);
+        etHeight.addTextChangedListener(watcher);
+        etProductPrice.addTextChangedListener(watcher);
+    }
+
+    private void updateCalculatedPrice() {
+        double weight = parseDouble(etWeight.getText().toString());
+        double length = parseDouble(etLength.getText().toString());
+        double width = parseDouble(etWidth.getText().toString());
+        double height = parseDouble(etHeight.getText().toString());
+        double productPrice = parseDouble(etProductPrice.getText().toString());
+
+        double price = calculateDeliveryPrice(weight, length, width, height, productPrice);
+        tvCalculatedPrice.setText(String.format("Стоимость доставки: %.2f руб", price));
+    }
+
+    private double calculateDeliveryPrice(double weight, double length, double width, double height, double productPrice) {
+        double basePrice = 100.0;
+        double weightCoeff = weight * 20;
+        double volume = (length * width * height) / 1000.0;
+        double volumeCoeff = volume * 10;
+        double insuranceCoeff = productPrice * 0.02;
+        return basePrice + weightCoeff + volumeCoeff + insuranceCoeff;
+    }
+
+    // ========== ОСТАЛЬНЫЕ МЕТОДЫ (без изменений) ==========
 
     private void createOrder() {
         final String pickupAddress = etPickupAddress.getText().toString().trim();
@@ -65,6 +112,7 @@ public class CreateOrderActivity extends AppCompatActivity {
         final double height = parseDouble(etHeight.getText().toString());
         final double productPrice = parseDouble(etProductPrice.getText().toString());
 
+        // Валидация (та же самая)
         if (pickupAddress.isEmpty()) {
             Toast.makeText(this, "Введите адрес забора", Toast.LENGTH_SHORT).show();
             return;
@@ -86,6 +134,7 @@ public class CreateOrderActivity extends AppCompatActivity {
             return;
         }
 
+        // Цена будет рассчитана в конструкторе Order
         final Order order = new Order(
                 currentUser.getId(),
                 pickupAddress,

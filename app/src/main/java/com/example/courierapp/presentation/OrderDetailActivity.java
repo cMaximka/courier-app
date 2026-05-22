@@ -20,8 +20,7 @@ public class OrderDetailActivity extends AppCompatActivity {
     private TextView tvPickupAddress, tvDeliveryAddress, tvWeight, tvDimensions;
     private TextView tvPrice, tvDeposit, tvStatus, tvCreatedAt;
     private TextView tvClientInfo, tvCourierInfo;
-    private Button btnPickupOrder, btnDeliverOrder, btnBack;
-
+    private Button btnPickupOrder, btnDeliverOrder, btnBack, btnCompleteOrder;
     private Order order;
     private User currentUser;
     private String userType;
@@ -63,6 +62,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         btnPickupOrder = findViewById(R.id.btn_pickup_order);
         btnDeliverOrder = findViewById(R.id.btn_deliver_order);
         btnBack = findViewById(R.id.btn_back);
+        btnCompleteOrder = findViewById(R.id.btn_complete_order);
     }
 
     private void initListeners() {
@@ -117,6 +117,8 @@ public class OrderDetailActivity extends AppCompatActivity {
             tvStatus.setTextColor(0xFF2196F3);
         } else if (status == 4) {
             tvStatus.setTextColor(0xFF4CAF50);
+        } else if (status == 5) {
+            tvStatus.setTextColor(0xFF607D8B);
         } else {
             tvStatus.setTextColor(0xFF9E9E9E);
         }
@@ -124,36 +126,35 @@ public class OrderDetailActivity extends AppCompatActivity {
 
     private void setupButtons() {
         if (userType.equals("courier")) {
-            // Режим курьера
             btnDeliverOrder.setVisibility(View.GONE);
 
-            if (order.getStatus() == 2) { // Статус "Ожидайте курьера" -> курьер может забрать
+            if (order.getStatus() == 2) {
                 btnPickupOrder.setVisibility(View.VISIBLE);
                 btnPickupOrder.setEnabled(true);
                 btnPickupOrder.setText("Забрал заказ");
-                btnPickupOrder.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        showPickupConfirmation();
-                    }
-                });
-            } else {
-                btnPickupOrder.setVisibility(View.GONE);
+                btnPickupOrder.setOnClickListener(v -> showPickupConfirmation());
+                btnCompleteOrder.setVisibility(View.GONE);
             }
-        } else {
-            // Режим клиента
+            else if (order.getStatus() == 4) {
+                btnPickupOrder.setVisibility(View.GONE);
+                btnCompleteOrder.setVisibility(View.VISIBLE);
+                btnCompleteOrder.setEnabled(true);
+                btnCompleteOrder.setText("Доставил заказ");
+                btnCompleteOrder.setOnClickListener(v -> showCompleteConfirmation());
+            }
+            else {
+                btnPickupOrder.setVisibility(View.GONE);
+                btnCompleteOrder.setVisibility(View.GONE);
+            }
+        }
+        else { // клиент
             btnPickupOrder.setVisibility(View.GONE);
-
-            if (order.getStatus() == 3) { // Статус "Отдайте заказ курьеру" -> клиент может подтвердить
+            btnCompleteOrder.setVisibility(View.GONE);
+            if (order.getStatus() == 3) {
                 btnDeliverOrder.setVisibility(View.VISIBLE);
                 btnDeliverOrder.setEnabled(true);
                 btnDeliverOrder.setText("Отдал заказ");
-                btnDeliverOrder.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        showDeliverConfirmation();
-                    }
-                });
+                btnDeliverOrder.setOnClickListener(v -> showDeliverConfirmation());
             } else {
                 btnDeliverOrder.setVisibility(View.VISIBLE);
                 btnDeliverOrder.setEnabled(false);
@@ -191,40 +192,54 @@ public class OrderDetailActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private void showCompleteConfirmation() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Подтверждение");
+        builder.setMessage("Вы подтверждаете, что доставили заказ получателю?");
+        builder.setPositiveButton("Да", (dialog, which) -> updateOrderStatus(5));
+        builder.setNegativeButton("Отмена", null);
+        builder.show();
+    }
+
     private void updateOrderStatus(final int newStatus) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                boolean success;
-                if (userType.equals("client") && newStatus == 4) {
-                    success = orderRepository.confirmDeliveredByClient(order.getId());
-                } else {
-                    success = orderRepository.updateOrderStatus(order.getId(), newStatus);
-                }
-
-                final boolean finalSuccess = success;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (finalSuccess) {
-                            order.setStatus(newStatus);
-                            displayOrderInfo();
-                            setupButtons();
-
-                            String message = "";
-                            if (newStatus == 3) {
-                                message = "Вы подтвердили получение заказа. Клиент теперь может подтвердить передачу.";
-                            } else if (newStatus == 4) {
-                                message = "Заказ передан курьеру и отправлен!";
-                            }
-                            Toast.makeText(OrderDetailActivity.this, message, Toast.LENGTH_LONG).show();
-                            setResult(RESULT_OK);
-                        } else {
-                            Toast.makeText(OrderDetailActivity.this, "Ошибка обновления статуса", Toast.LENGTH_SHORT).show();
-                        }
-                    }
-                });
+        new Thread(() -> {
+            boolean success;
+            if (userType.equals("courier") && newStatus == 5) {
+                // Завершение заказа с переводом денег
+                success = orderRepository.completeOrderWithPayment(
+                        order.getId(),
+                        order.getClientId(),
+                        currentUser.getId(),
+                        order.getPrice()
+                );
+            } else if (userType.equals("client") && newStatus == 4) {
+                success = orderRepository.confirmDeliveredByClient(order.getId());
+            } else {
+                success = orderRepository.updateOrderStatus(order.getId(), newStatus);
             }
+
+            runOnUiThread(() -> {
+                if (success) {
+                    order.setStatus(newStatus);
+                    displayOrderInfo();
+                    setupButtons();
+
+                    String message = "";
+                    if (newStatus == 3) {
+                        message = "Вы подтвердили получение заказа. Клиент теперь может подтвердить передачу.";
+                    } else if (newStatus == 4) {
+                        message = "Заказ передан курьеру и отправлен!";
+                    } else if (newStatus == 5) {
+                        message = "Заказ доставлен! Деньги переведены курьеру.";
+                    }
+                    Toast.makeText(OrderDetailActivity.this, message, Toast.LENGTH_LONG).show();
+                    setResult(RESULT_OK);
+                } else {
+                    Toast.makeText(OrderDetailActivity.this,
+                            "Ошибка: недостаточно средств у клиента или другая проблема",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
         }).start();
     }
 }
