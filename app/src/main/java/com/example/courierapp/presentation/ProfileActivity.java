@@ -16,13 +16,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.courierapp.R;
-import com.example.courierapp.data.AuthRepository;
-import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Client;
 import com.example.courierapp.domain.entity.Courier;
 import com.example.courierapp.domain.entity.Order;
 import com.example.courierapp.domain.entity.User;
+import com.example.courierapp.domain.usecase.AddBalanceUsecase;
 import com.example.courierapp.domain.usecase.GetOrdersUsecase;
+import com.example.courierapp.domain.usecase.UpdateProfileUsecase;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +36,9 @@ public class ProfileActivity extends AppCompatActivity {
     private List<Order> ordersList;
 
     private User currentUser;
-    private AuthRepository authRepository;
-    private GetOrdersUsecase getOrdersUsecase;
+    private GetOrdersUsecase getOrdersUsecase = new GetOrdersUsecase();
+    private UpdateProfileUsecase updateProfileUsecase = new UpdateProfileUsecase();
+    private AddBalanceUsecase addBalanceUsecase = new AddBalanceUsecase();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,17 +52,8 @@ public class ProfileActivity extends AppCompatActivity {
             finish();
             return;
         }
-
-        authRepository = new AuthRepository();
-        getOrdersUsecase = new GetOrdersUsecase();
         ordersList = new ArrayList<>();
 
-        initViews();
-        loadUserData();
-        loadOrderHistory();
-    }
-
-    private void initViews() {
         tvFullName = findViewById(R.id.tv_full_name);
         tvPhone = findViewById(R.id.tv_phone);
         tvLogin = findViewById(R.id.tv_login);
@@ -96,6 +88,10 @@ public class ProfileActivity extends AppCompatActivity {
                 finish();
             }
         });
+
+        
+        loadUserData();
+        loadOrderHistory();
     }
 
     private void loadUserData() {
@@ -114,26 +110,25 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void loadOrderHistory() {
-        new Thread(() -> {
-            OrderRepository orderRepository = new OrderRepository();
-            List<Order> orders;
-            if (currentUser instanceof Client) {
-                orders = orderRepository.getCompletedOrdersByClientId(currentUser.getId());
-            } else if (currentUser instanceof Courier) {
-                orders = orderRepository.getCompletedOrdersByCourierId(currentUser.getId());
-            } else {
-                orders = new ArrayList<>();
-            }
-
-            List<Order> finalOrders = orders;
-            runOnUiThread(() -> {
-                ordersList.clear();
-                ordersList.addAll(finalOrders);
-                orderAdapter.updateOrders(ordersList);
-                if (ordersList.isEmpty()) {
-                    Toast.makeText(ProfileActivity.this, "Нет завершённых заказов", Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<Order> orders;
+                if (currentUser instanceof Client) {
+                    orders = getOrdersUsecase.getCompletedOrdersByClient(currentUser.getId());
+                } else {
+                    orders = getOrdersUsecase.getCompletedOrdersByCourier(currentUser.getId());
                 }
-            });
+                final List<Order> finalOrders = orders;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ordersList.clear();
+                        ordersList.addAll(finalOrders);
+                        orderAdapter.updateOrders(ordersList);
+                    }
+                });
+            }
         }).start();
     }
 
@@ -205,19 +200,23 @@ public class ProfileActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        final boolean success = authRepository.updateProfile(currentUser);
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (success) {
+                        try {
+                            updateProfileUsecase.execute(currentUser);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
                                     Toast.makeText(ProfileActivity.this, "Профиль обновлён", Toast.LENGTH_SHORT).show();
                                     loadUserData();
-                                } else {
-                                    Toast.makeText(ProfileActivity.this, "Ошибка обновления", Toast.LENGTH_SHORT).show();
                                 }
-                            }
-                        });
+                            });
+                        } catch (RuntimeException e) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(ProfileActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
                     }
                 }).start();
             }
@@ -254,21 +253,24 @@ public class ProfileActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        final boolean success = authRepository.addBalance(currentUser.getId(), amount);
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (success) {
-                                    double newBalance = currentUser.getBalance() + amount;
-                                    currentUser.setBalance(newBalance);
+                        try {
+                            addBalanceUsecase.execute(currentUser.getId(), amount);
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    currentUser.setBalance(currentUser.getBalance() + amount);
                                     loadUserData();
-                                    Toast.makeText(ProfileActivity.this, "Баланс пополнен на " + amount + " руб.", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(ProfileActivity.this, "Ошибка пополнения", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(ProfileActivity.this, "Баланс пополнен", Toast.LENGTH_SHORT).show();
                                 }
-                            }
-                        });
+                            });
+                        } catch (RuntimeException e) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(ProfileActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                                }
+                            });
+                        }
                     }
                 }).start();
             }

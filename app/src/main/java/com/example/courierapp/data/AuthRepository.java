@@ -11,7 +11,6 @@ import java.sql.SQLException;
 
 public class AuthRepository {
 
-    // Регистрация клиента (обновлено с balance)
     public boolean registerClient(Client client) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
@@ -46,7 +45,6 @@ public class AuthRepository {
         }
     }
 
-    // Регистрация курьера (обновлено с balance)
     public boolean registerCourier(Courier courier) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
@@ -82,7 +80,6 @@ public class AuthRepository {
         }
     }
 
-    // Вход (обновлено - читаем balance)
     public User login(String login, String password) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return null;
@@ -126,7 +123,6 @@ public class AuthRepository {
         }
     }
 
-    // НОВЫЙ МЕТОД: Получить пользователя по ID (с балансом)
     public User getUserById(String userId) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return null;
@@ -169,17 +165,14 @@ public class AuthRepository {
         }
     }
 
-    // НОВЫЙ МЕТОД: Обновить профиль пользователя
     public boolean updateProfile(User user) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
 
         String query;
         if (user.getUserType() == 1) {
-            // Клиент
             query = "UPDATE users SET full_name = ?, phone = ?, address = ? WHERE id = ?";
         } else {
-            // Курьер
             query = "UPDATE users SET full_name = ?, phone = ?, passport_data = ?, driver_license = ? WHERE id = ?";
         }
 
@@ -210,7 +203,6 @@ public class AuthRepository {
         }
     }
 
-    // НОВЫЙ МЕТОД: Пополнить баланс
     public boolean addBalance(String userId, double amount) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;
@@ -233,7 +225,6 @@ public class AuthRepository {
         }
     }
 
-    // Проверка существования логина
     public boolean isLoginExists(String login) {
         Connection conn = DBWorker.getConnection();
         if (conn == null) return false;

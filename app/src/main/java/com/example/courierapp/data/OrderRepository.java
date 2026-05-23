@@ -157,49 +157,24 @@ public class OrderRepository {
     }
 
     // ========== ПРИНЯТЬ ЗАКАЗ (с проверкой баланса) ==========
-    public boolean acceptOrderWithPayment(String orderId, String courierId, double price) {
-        double deposit = price / 2.0;
-
-        String checkBalanceSql = "SELECT balance FROM users WHERE id = ? AND balance >= ?";
+    public boolean acceptOrderWithPayment(String orderId, String courierId, double deposit) {
+        String deductSql = "UPDATE users SET balance = balance - ? WHERE id = ?";
         String updateOrderSql = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
-        String deductBalanceSql = "UPDATE users SET balance = balance - ? WHERE id = ?";
-
         try (Connection conn = DBWorker.getConnection()) {
             conn.setAutoCommit(false);
-
-            // 1. Проверка баланса
-            try (PreparedStatement checkStmt = conn.prepareStatement(checkBalanceSql)) {
-                checkStmt.setString(1, courierId);
-                checkStmt.setDouble(2, deposit);
-                ResultSet rs = checkStmt.executeQuery();
-                if (!rs.next()) {
-                    conn.rollback();
-                    return false;   // недостаточно средств
-                }
-            }
-
-            // 2. Списание средств
-            try (PreparedStatement deductStmt = conn.prepareStatement(deductBalanceSql)) {
+            try (PreparedStatement deductStmt = conn.prepareStatement(deductSql)) {
                 deductStmt.setDouble(1, deposit);
                 deductStmt.setString(2, courierId);
-                deductStmt.executeUpdate();
+                if (deductStmt.executeUpdate() == 0) throw new SQLException();
             }
-
-            // 3. Обновление заказа (только два параметра!)
             try (PreparedStatement orderStmt = conn.prepareStatement(updateOrderSql)) {
-                orderStmt.setString(1, courierId);   // первый параметр
-                orderStmt.setString(2, orderId);     // второй параметр
-                int affected = orderStmt.executeUpdate();
-                if (affected == 0) {
-                    conn.rollback();
-                    return false;
-                }
+                orderStmt.setString(1, courierId);
+                orderStmt.setString(2, orderId);
+                if (orderStmt.executeUpdate() == 0) throw new SQLException();
             }
-
             conn.commit();
             return true;
         } catch (SQLException e) {
-            e.printStackTrace();
             return false;
         }
     }
@@ -338,5 +313,33 @@ public class OrderRepository {
         order.setCourierPhone(rs.getString("courier_phone"));
 
         return order;
+    }
+
+    public boolean completeOrderTransaction(String orderId, String clientId, String courierId, double amount) {
+        String deductClient = "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?";
+        String addCourier = "UPDATE users SET balance = balance + ? WHERE id = ?";
+        String updateOrder = "UPDATE orders SET status = 5 WHERE id = ? AND status = 4";
+        try (Connection conn = DBWorker.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement ps = conn.prepareStatement(deductClient)) {
+                ps.setDouble(1, amount);
+                ps.setString(2, clientId);
+                ps.setDouble(3, amount);
+                if (ps.executeUpdate() == 0) throw new SQLException();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(addCourier)) {
+                ps.setDouble(1, amount);
+                ps.setString(2, courierId);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = conn.prepareStatement(updateOrder)) {
+                ps.setString(1, orderId);
+                if (ps.executeUpdate() == 0) throw new SQLException();
+            }
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            return false;
+        }
     }
 }

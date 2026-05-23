@@ -38,16 +38,7 @@ public class Order implements Serializable {
         this.height = height;
         this.productPrice = productPrice;
         this.status = 1;
-        this.price = calculatePrice();
-    }
-
-    private double calculatePrice() {
-        double basePrice = 100.0;
-        double weightCoeff = weight * 20;
-        double volume = (length * width * height) / 1000;
-        double volumeCoeff = volume * 10;
-        double insuranceCoeff = productPrice * 0.02;
-        return basePrice + weightCoeff + volumeCoeff + insuranceCoeff;
+        this.price = 0; // Цена устанавливается через setPrice() из CreateOrderUsecase
     }
 
     // Геттеры и сеттеры

@@ -52,7 +52,6 @@ public class AuthUsecase {
         return repository.registerCourier(courier);
     }
 
-    // Валидация (та же самая)
     private String validateClientData(Client client) {
         if (client.getFullName() == null || client.getFullName().trim().isEmpty()) {
             return "Введите полное имя";

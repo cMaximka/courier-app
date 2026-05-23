@@ -22,8 +22,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        init();
+
+        loginButton = findViewById(R.id.btn_login);
+        registerButton = findViewById(R.id.btn_register);
+
         checkDatabaseConnection();
+        
         registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -38,12 +42,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-    }
-    private void init()
-    {
-        loginButton = findViewById(R.id.btn_login);
-        registerButton = findViewById(R.id.btn_register);
-
     }
     private void checkDatabaseConnection() {
         new Thread(() -> {

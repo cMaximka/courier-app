@@ -11,7 +11,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.courierapp.R;
-import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Order;
 import com.example.courierapp.domain.entity.User;
 import com.example.courierapp.domain.usecase.GetOrdersUsecase;
@@ -49,6 +48,7 @@ public class ClientActivity extends AppCompatActivity {
         btnCreateOrder = findViewById(R.id.btn_createOrder);
         btnProfile = findViewById(R.id.btn_profile);
         btnRefresh = findViewById(R.id.btn_refresh);
+        Button btnBack = findViewById(R.id.btn_back);
 
         rvOrders = findViewById(R.id.rv_clientOrders);
 
@@ -78,7 +78,6 @@ public class ClientActivity extends AppCompatActivity {
             }
         });
 
-        // ИСПРАВЛЕНО: Создаём адаптер ОДИН раз, с правильным слушателем
         orderAdapter = new OrderAdapter(ordersList, new OrderAdapter.OnOrderActionListener() {
             @Override
             public void onAcceptClick(Order order) { }
@@ -90,6 +89,13 @@ public class ClientActivity extends AppCompatActivity {
             }
         }, 0);
 
+        btnBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+
         rvOrders.setLayoutManager(new LinearLayoutManager(this));
         rvOrders.setAdapter(orderAdapter);
 
@@ -97,16 +103,22 @@ public class ClientActivity extends AppCompatActivity {
     }
 
     private void loadOrders() {
-        new Thread(() -> {
-            List<Order> orders = new OrderRepository().getActiveOrdersByClientId(currentUser.getId());
-            runOnUiThread(() -> {
-                ordersList.clear();
-                ordersList.addAll(orders);
-                orderAdapter.updateOrders(ordersList);
-                if (ordersList.isEmpty()) {
-                    Toast.makeText(ClientActivity.this, "У вас нет активных заказов", Toast.LENGTH_SHORT).show();
-                }
-            });
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                List<Order> orders = getOrdersUsecase.getActiveOrders(currentUser.getId());
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ordersList.clear();
+                        ordersList.addAll(orders);
+                        orderAdapter.updateOrders(ordersList);
+                        if (ordersList.isEmpty()) {
+                            Toast.makeText(ClientActivity.this, "Нет активных заказов", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+            }
         }).start();
     }
 

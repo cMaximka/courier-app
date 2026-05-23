@@ -11,9 +11,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.courierapp.R;
-import com.example.courierapp.data.OrderRepository;
 import com.example.courierapp.domain.entity.Order;
 import com.example.courierapp.domain.entity.User;
+import com.example.courierapp.domain.usecase.CompleteOrderUsecase;
+import com.example.courierapp.domain.usecase.UpdateOrderStatusUsecase;
 
 public class OrderDetailActivity extends AppCompatActivity {
 
@@ -24,7 +25,6 @@ public class OrderDetailActivity extends AppCompatActivity {
     private Order order;
     private User currentUser;
     private String userType;
-    private OrderRepository orderRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,15 +40,7 @@ public class OrderDetailActivity extends AppCompatActivity {
             finish();
             return;
         }
-
-        orderRepository = new OrderRepository();
-        initViews();
-        initListeners();
-        displayOrderInfo();
-        setupButtons();
-    }
-
-    private void initViews() {
+        
         tvPickupAddress = findViewById(R.id.tv_detail_pickup_address);
         tvDeliveryAddress = findViewById(R.id.tv_detail_delivery_address);
         tvWeight = findViewById(R.id.tv_detail_weight);
@@ -63,15 +55,16 @@ public class OrderDetailActivity extends AppCompatActivity {
         btnDeliverOrder = findViewById(R.id.btn_deliver_order);
         btnBack = findViewById(R.id.btn_back);
         btnCompleteOrder = findViewById(R.id.btn_complete_order);
-    }
 
-    private void initListeners() {
-        btnBack.setOnClickListener(new View.OnClickListener() {
+         btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
             }
         });
+
+        displayOrderInfo();
+        setupButtons();
     }
 
     private void displayOrderInfo() {
@@ -202,44 +195,36 @@ public class OrderDetailActivity extends AppCompatActivity {
     }
 
     private void updateOrderStatus(final int newStatus) {
-        new Thread(() -> {
-            boolean success;
-            if (userType.equals("courier") && newStatus == 5) {
-                // Завершение заказа с переводом денег
-                success = orderRepository.completeOrderWithPayment(
-                        order.getId(),
-                        order.getClientId(),
-                        currentUser.getId(),
-                        order.getPrice()
-                );
-            } else if (userType.equals("client") && newStatus == 4) {
-                success = orderRepository.confirmDeliveredByClient(order.getId());
-            } else {
-                success = orderRepository.updateOrderStatus(order.getId(), newStatus);
-            }
-
-            runOnUiThread(() -> {
-                if (success) {
-                    order.setStatus(newStatus);
-                    displayOrderInfo();
-                    setupButtons();
-
-                    String message = "";
-                    if (newStatus == 3) {
-                        message = "Вы подтвердили получение заказа. Клиент теперь может подтвердить передачу.";
-                    } else if (newStatus == 4) {
-                        message = "Заказ передан курьеру и отправлен!";
-                    } else if (newStatus == 5) {
-                        message = "Заказ доставлен! Деньги переведены курьеру.";
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (userType.equals("courier") && newStatus == 5) {
+                        CompleteOrderUsecase completeUsecase = new CompleteOrderUsecase();
+                        completeUsecase.execute(order.getId(), order.getClientId(), currentUser.getId(), order.getPrice());
+                    } else {
+                        UpdateOrderStatusUsecase statusUsecase = new UpdateOrderStatusUsecase();
+                        statusUsecase.execute(order.getId(), newStatus);
                     }
-                    Toast.makeText(OrderDetailActivity.this, message, Toast.LENGTH_LONG).show();
-                    setResult(RESULT_OK);
-                } else {
-                    Toast.makeText(OrderDetailActivity.this,
-                            "Ошибка: недостаточно средств у клиента или другая проблема",
-                            Toast.LENGTH_SHORT).show();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            order.setStatus(newStatus);
+                            displayOrderInfo();
+                            setupButtons();
+                            Toast.makeText(OrderDetailActivity.this, "Статус обновлён", Toast.LENGTH_LONG).show();
+                            setResult(RESULT_OK);
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(OrderDetailActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
                 }
-            });
+            }
         }).start();
     }
 }

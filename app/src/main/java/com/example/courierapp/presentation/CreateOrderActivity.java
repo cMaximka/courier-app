@@ -22,7 +22,6 @@ public class CreateOrderActivity extends AppCompatActivity {
     private EditText etPickupAddress, etDeliveryAddress, etWeight, etLength, etWidth, etHeight, etProductPrice;
     private TextView tvCalculatedPrice;
     private Button btnCreate;
-    private CreateOrderUsecase createOrderUsecase;
     private User currentUser;
 
     @Override
@@ -38,8 +37,6 @@ public class CreateOrderActivity extends AppCompatActivity {
             return;
         }
 
-        createOrderUsecase = new CreateOrderUsecase();
-
         etPickupAddress = findViewById(R.id.et_pickup_address);
         etDeliveryAddress = findViewById(R.id.et_delivery_address);
         etWeight = findViewById(R.id.et_weight);
@@ -49,8 +46,9 @@ public class CreateOrderActivity extends AppCompatActivity {
         etProductPrice = findViewById(R.id.et_product_price);
         tvCalculatedPrice = findViewById(R.id.tv_calculated_price);
         btnCreate = findViewById(R.id.btn_create);
+        Button btnBack = findViewById(R.id.btn_back);
 
-        // Устанавливаем слушатели для автоматического пересчёта цены
+
         setupPriceCalculation();
 
         btnCreate.setOnClickListener(new View.OnClickListener() {
@@ -59,9 +57,14 @@ public class CreateOrderActivity extends AppCompatActivity {
                 createOrder();
             }
         });
-    }
 
-    // ========== НОВЫЕ МЕТОДЫ ДЛЯ РАСЧЁТА СТОИМОСТИ ==========
+        btnBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
+        });
+    }
 
     private void setupPriceCalculation() {
         TextWatcher watcher = new TextWatcher() {
@@ -82,26 +85,14 @@ public class CreateOrderActivity extends AppCompatActivity {
     }
 
     private void updateCalculatedPrice() {
-        double weight = parseDouble(etWeight.getText().toString());
-        double length = parseDouble(etLength.getText().toString());
-        double width = parseDouble(etWidth.getText().toString());
-        double height = parseDouble(etHeight.getText().toString());
-        double productPrice = parseDouble(etProductPrice.getText().toString());
-
-        double price = calculateDeliveryPrice(weight, length, width, height, productPrice);
+        double w = parseDouble(etWeight.getText().toString());
+        double l = parseDouble(etLength.getText().toString());
+        double wd = parseDouble(etWidth.getText().toString());
+        double h = parseDouble(etHeight.getText().toString());
+        double prodPrice = parseDouble(etProductPrice.getText().toString());
+        double price = CreateOrderUsecase.calculate(w, l, wd, h, prodPrice);
         tvCalculatedPrice.setText(String.format("Стоимость доставки: %.2f руб", price));
     }
-
-    private double calculateDeliveryPrice(double weight, double length, double width, double height, double productPrice) {
-        double basePrice = 100.0;
-        double weightCoeff = weight * 20;
-        double volume = (length * width * height) / 1000.0;
-        double volumeCoeff = volume * 10;
-        double insuranceCoeff = productPrice * 0.02;
-        return basePrice + weightCoeff + volumeCoeff + insuranceCoeff;
-    }
-
-    // ========== ОСТАЛЬНЫЕ МЕТОДЫ (без изменений) ==========
 
     private void createOrder() {
         final String pickupAddress = etPickupAddress.getText().toString().trim();
@@ -112,63 +103,38 @@ public class CreateOrderActivity extends AppCompatActivity {
         final double height = parseDouble(etHeight.getText().toString());
         final double productPrice = parseDouble(etProductPrice.getText().toString());
 
-        // Валидация (та же самая)
-        if (pickupAddress.isEmpty()) {
-            Toast.makeText(this, "Введите адрес забора", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (deliveryAddress.isEmpty()) {
-            Toast.makeText(this, "Введите адрес доставки", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (weight <= 0) {
-            Toast.makeText(this, "Введите корректный вес", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (length <= 0 || width <= 0 || height <= 0) {
-            Toast.makeText(this, "Введите корректные габариты", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (productPrice <= 0) {
-            Toast.makeText(this, "Введите корректную цену товара", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Цена будет рассчитана в конструкторе Order
-        final Order order = new Order(
-                currentUser.getId(),
-                pickupAddress,
-                deliveryAddress,
-                weight,
-                length,
-                width,
-                height,
-                productPrice
-        );
-
-        btnCreate.setEnabled(false);
-        btnCreate.setText("Создание...");
-
+        CreateOrderUsecase usecase = new CreateOrderUsecase();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                final boolean success = createOrderUsecase.createOrder(order);
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        btnCreate.setEnabled(true);
-                        btnCreate.setText("Создать заказ");
-
-                        if (success) {
-                            Toast.makeText(CreateOrderActivity.this, "Заказ успешно создан!", Toast.LENGTH_SHORT).show();
+                try {
+                    Order order = usecase.execute(
+                            currentUser.getId(), pickupAddress, deliveryAddress,
+                            weight, length, width, height, productPrice
+                    );
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(CreateOrderActivity.this, "Заказ создан!", Toast.LENGTH_SHORT).show();
                             setResult(RESULT_OK);
                             finish();
-                        } else {
-                            Toast.makeText(CreateOrderActivity.this, "Ошибка при создании заказа", Toast.LENGTH_LONG).show();
                         }
-                    }
-                });
+                    });
+                } catch (RuntimeException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(CreateOrderActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                } finally {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            btnCreate.setEnabled(true);
+                        }
+                    });
+                }
             }
         }).start();
     }
