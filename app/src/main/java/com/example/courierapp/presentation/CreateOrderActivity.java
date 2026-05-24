@@ -16,6 +16,7 @@ import com.example.courierapp.R;
 import com.example.courierapp.domain.entity.Order;
 import com.example.courierapp.domain.entity.User;
 import com.example.courierapp.domain.usecase.CreateOrderUsecase;
+import com.example.courierapp.domain.usecase.UpdateOrderUsecase;
 
 public class CreateOrderActivity extends AppCompatActivity {
 
@@ -23,6 +24,8 @@ public class CreateOrderActivity extends AppCompatActivity {
     private TextView tvCalculatedPrice;
     private Button btnCreate;
     private User currentUser;
+    private Order orderToEdit;
+    private boolean isEditMode = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +33,8 @@ public class CreateOrderActivity extends AppCompatActivity {
         setContentView(R.layout.activity_create_order);
 
         currentUser = (User) getIntent().getSerializableExtra("user");
+        orderToEdit = (Order) getIntent().getSerializableExtra("order");
+        isEditMode = orderToEdit != null;
 
         if (currentUser == null) {
             Toast.makeText(this, "Ошибка: пользователь не авторизован", Toast.LENGTH_LONG).show();
@@ -48,13 +53,26 @@ public class CreateOrderActivity extends AppCompatActivity {
         btnCreate = findViewById(R.id.btn_create);
         Button btnBack = findViewById(R.id.btn_back);
 
+        // Установить текст кнопки в зависимости от режима
+        if (isEditMode) {
+            btnCreate.setText("Сохранить");
+            setTitle("Редактирование заказа");
+            populateFormWithOrderData();
+        } else {
+            btnCreate.setText("Создать");
+            setTitle("Создание заказа");
+        }
 
         setupPriceCalculation();
 
         btnCreate.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                createOrder();
+                if (isEditMode) {
+                    updateOrder();
+                } else {
+                    createOrder();
+                }
             }
         });
 
@@ -64,6 +82,19 @@ public class CreateOrderActivity extends AppCompatActivity {
                 finish();
             }
         });
+    }
+
+    private void populateFormWithOrderData() {
+        if (orderToEdit != null) {
+            etPickupAddress.setText(orderToEdit.getPickupAddress());
+            etDeliveryAddress.setText(orderToEdit.getDeliveryAddress());
+            etWeight.setText(String.valueOf(orderToEdit.getWeight()));
+            etLength.setText(String.valueOf(orderToEdit.getLength()));
+            etWidth.setText(String.valueOf(orderToEdit.getWidth()));
+            etHeight.setText(String.valueOf(orderToEdit.getHeight()));
+            etProductPrice.setText(String.valueOf(orderToEdit.getProductPrice()));
+            updateCalculatedPrice();
+        }
     }
 
     private void setupPriceCalculation() {
@@ -116,6 +147,60 @@ public class CreateOrderActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             Toast.makeText(CreateOrderActivity.this, "Заказ создан!", Toast.LENGTH_SHORT).show();
+                            setResult(RESULT_OK);
+                            finish();
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(CreateOrderActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                } finally {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            btnCreate.setEnabled(true);
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private void updateOrder() {
+        final String pickupAddress = etPickupAddress.getText().toString().trim();
+        final String deliveryAddress = etDeliveryAddress.getText().toString().trim();
+        final double weight = parseDouble(etWeight.getText().toString());
+        final double length = parseDouble(etLength.getText().toString());
+        final double width = parseDouble(etWidth.getText().toString());
+        final double height = parseDouble(etHeight.getText().toString());
+        final double productPrice = parseDouble(etProductPrice.getText().toString());
+
+        // Обновить данные заказа
+        orderToEdit.setPickupAddress(pickupAddress);
+        orderToEdit.setDeliveryAddress(deliveryAddress);
+        orderToEdit.setWeight(weight);
+        orderToEdit.setLength(length);
+        orderToEdit.setWidth(width);
+        orderToEdit.setHeight(height);
+        orderToEdit.setProductPrice(productPrice);
+        double newPrice = UpdateOrderUsecase.calculate(weight, length, width, height, productPrice);
+        orderToEdit.setPrice(newPrice);
+
+        UpdateOrderUsecase usecase = new UpdateOrderUsecase();
+        btnCreate.setEnabled(false);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    usecase.execute(orderToEdit);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(CreateOrderActivity.this, "Заказ обновлен!", Toast.LENGTH_SHORT).show();
                             setResult(RESULT_OK);
                             finish();
                         }

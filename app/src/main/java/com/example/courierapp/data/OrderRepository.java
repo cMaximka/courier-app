@@ -9,14 +9,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class OrderRepository {
 
-    // ========== СОЗДАНИЕ ЗАКАЗА (исправлено: NOW() вместо datetime('now')) ==========
     public boolean createOrder(Order order) {
-        // Поля: client_id, pickup_address, delivery_address, weight, length, width, height, product_price, price, status, created_at
-        // Значения: 10 параметров (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         String sql = "INSERT INTO orders (client_id, pickup_address, delivery_address, " +
                 "weight, length, width, height, product_price, price, status, created_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())";
@@ -59,7 +55,7 @@ public class OrderRepository {
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
                 "LEFT JOIN users cou ON o.courier_id = cou.id " +
-                "WHERE o.client_id = ? AND o.status != 5 ORDER BY o.created_at DESC";
+                "WHERE o.client_id = ? AND o.status NOT IN (5,6) ORDER BY o.created_at DESC";
 
         try (Connection conn = DBWorker.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -99,7 +95,6 @@ public class OrderRepository {
         return orders;
     }
 
-    // ========== ДОСТУПНЫЕ ЗАКАЗЫ ДЛЯ КУРЬЕРА ==========
     public List<Order> getAllAvailableOrders() {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
@@ -127,7 +122,6 @@ public class OrderRepository {
         return orders;
     }
 
-    // ========== ЗАКАЗЫ КОНКРЕТНОГО КУРЬЕРА ==========
     public List<Order> getOrdersByCourierId(String courierId) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
@@ -138,7 +132,7 @@ public class OrderRepository {
                 "FROM orders o " +
                 "LEFT JOIN users c ON o.client_id = c.id " +
                 "LEFT JOIN users cou ON o.courier_id = cou.id " +
-                "WHERE o.courier_id = ? AND o.status != 5 ORDER BY o.created_at DESC";
+                "WHERE o.courier_id = ? AND o.status NOT IN (5,6) ORDER BY o.created_at DESC";
 
         try (Connection conn = DBWorker.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -156,7 +150,6 @@ public class OrderRepository {
         return orders;
     }
 
-    // ========== ПРИНЯТЬ ЗАКАЗ (с проверкой баланса) ==========
     public boolean acceptOrderWithPayment(String orderId, String courierId, double deposit) {
         String deductSql = "UPDATE users SET balance = balance - ? WHERE id = ?";
         String updateOrderSql = "UPDATE orders SET courier_id = ?, status = 2 WHERE id = ? AND status = 1";
@@ -179,7 +172,6 @@ public class OrderRepository {
         }
     }
 
-    // ========== ЗАВЕРШЁННЫЕ ЗАКАЗЫ КЛИЕНТА (для истории) ==========
     public List<Order> getCompletedOrdersByClientId(String clientId) {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT o.id, o.client_id, o.courier_id, o.pickup_address, o.delivery_address, " +
@@ -213,7 +205,6 @@ public class OrderRepository {
         try (Connection conn = DBWorker.getConnection()) {
             conn.setAutoCommit(false);
 
-            // 1. Списание полной стоимости с клиента (если достаточно средств)
             try (PreparedStatement deductStmt = conn.prepareStatement(deductFromClientSql)) {
                 deductStmt.setDouble(1, price);
                 deductStmt.setString(2, clientId);
@@ -221,18 +212,16 @@ public class OrderRepository {
                 int affected = deductStmt.executeUpdate();
                 if (affected == 0) {
                     conn.rollback();
-                    return false; // недостаточно средств у клиента
+                    return false;
                 }
             }
 
-            // 2. Зачисление полной стоимости курьеру
             try (PreparedStatement addStmt = conn.prepareStatement(addToCourierSql)) {
                 addStmt.setDouble(1, price);
                 addStmt.setString(2, courierId);
                 addStmt.executeUpdate();
             }
 
-            // 3. Обновление статуса заказа на "Доставлен"
             try (PreparedStatement orderStmt = conn.prepareStatement(updateOrderSql)) {
                 orderStmt.setString(1, orderId);
                 int affected = orderStmt.executeUpdate();
@@ -250,9 +239,8 @@ public class OrderRepository {
         }
     }
 
-    // ========== ОТМЕНИТЬ ЗАКАЗ ==========
     public boolean cancelOrder(String orderId) {
-        String sql = "UPDATE orders SET courier_id = NULL, status = 1 WHERE id = ? AND status >= 2";
+        String sql = "UPDATE orders SET courier_id = NULL, status = 6 WHERE id = ? AND status = 1";
         try (Connection conn = DBWorker.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -265,7 +253,31 @@ public class OrderRepository {
         }
     }
 
-    // ========== ОБНОВЛЕНИЕ СТАТУСА ==========
+    public boolean updateOrder(Order order) {
+        String sql = "UPDATE orders SET pickup_address = ?, delivery_address = ?, " +
+                "weight = ?, length = ?, width = ?, height = ?, product_price = ?, price = ? " +
+                "WHERE id = ? AND status = 1";
+        try (Connection conn = DBWorker.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, order.getPickupAddress());
+            pstmt.setString(2, order.getDeliveryAddress());
+            pstmt.setDouble(3, order.getWeight());
+            pstmt.setDouble(4, order.getLength());
+            pstmt.setDouble(5, order.getWidth());
+            pstmt.setDouble(6, order.getHeight());
+            pstmt.setDouble(7, order.getProductPrice());
+            pstmt.setDouble(8, order.getPrice());
+            pstmt.setString(9, order.getId());
+
+            int affected = pstmt.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean updateOrderStatus(String orderId, int newStatus) {
         String sql = "UPDATE orders SET status = ? WHERE id = ?";
         try (Connection conn = DBWorker.getConnection();
@@ -281,7 +293,6 @@ public class OrderRepository {
         }
     }
 
-    // ========== ПОДТВЕРЖДЕНИЕ КЛИЕНТОМ ==========
     public boolean confirmDeliveredByClient(String orderId) {
         return updateOrderStatus(orderId, 4);
     }
@@ -289,7 +300,6 @@ public class OrderRepository {
         return updateOrderStatus(orderId, 5);
     }
 
-    // ========== МАППИНГ ИЗ ResultSet ==========
     private Order mapOrderFromResultSet(ResultSet rs) throws SQLException {
         Order order = new Order(
                 rs.getString("client_id"),

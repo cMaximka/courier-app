@@ -19,9 +19,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
+        android:id="@+id/scroll_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/btn_pickup_order"
+        app:layout_constraintBottom_toTopOf="@+id/buttons_container"
         app:layout_constraintTop_toBottomOf="@+id/btn_back">
 
         <LinearLayout
@@ -168,38 +169,64 @@
 
     </ScrollView>
 
-    <Button
-        android:id="@+id/btn_pickup_order"
+    <LinearLayout
+        android:id="@+id/buttons_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Забрал заказ"
-        android:visibility="gone"
+        android:orientation="vertical"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <Button
-        android:id="@+id/btn_deliver_order"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Отдал заказ"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        <LinearLayout
+            android:id="@+id/client_buttons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:spacing="8dp">
 
-    <Button
-        android:id="@+id/btn_complete_order"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:text="Доставил заказ"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+            <Button
+                android:id="@+id/btn_edit_order"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Редактировать"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_cancel_order"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Отменить"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btn_pickup_order"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Забрал заказ"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_deliver_order"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Отдал заказ"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_complete_order"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Доставил заказ"
+            android:visibility="gone" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/tv_title"

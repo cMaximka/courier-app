@@ -13,8 +13,6 @@ public class AuthUsecase {
     public AuthUsecase() {
         this.repository = new AuthRepository();
     }
-
-    // Просто возвращаем результат или null/exception
     public User login(String login, String password) {
         if (login == null || login.trim().isEmpty()) {
             return null;

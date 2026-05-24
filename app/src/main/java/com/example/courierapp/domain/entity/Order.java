@@ -65,7 +65,8 @@ public class Order implements Serializable {
             case 2: return "Ожидайте курьера";
             case 3: return "Отдайте заказ курьеру";
             case 4: return "В пути";
-            case 5: return "Доставлен";         
+            case 5: return "Доставлен";
+            case 6: return "Отменён";
             default: return "Неизвестно";
         }
     }
