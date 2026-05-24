@@ -240,13 +240,56 @@ public class OrderRepository {
     }
 
     public boolean cancelOrder(String orderId) {
-        String sql = "UPDATE orders SET courier_id = NULL, status = 6 WHERE id = ? AND status = 1";
-        try (Connection conn = DBWorker.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        String selectSql = "SELECT courier_id, price, status FROM orders WHERE id = ?";
+        String updateOrderSql = "UPDATE orders SET courier_id = NULL, status = 6 WHERE id = ?";
+        String refundCourierSql = "UPDATE users SET balance = balance + ? WHERE id = ?";
 
-            pstmt.setString(1, orderId);
-            int affected = pstmt.executeUpdate();
-            return affected > 0;
+        try (Connection conn = DBWorker.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+                selectStmt.setString(1, orderId);
+                ResultSet rs = selectStmt.executeQuery();
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;
+                }
+
+                String courierId = rs.getString("courier_id");
+                double price = rs.getDouble("price");
+                int status = rs.getInt("status");
+
+                if (status == 5 || status == 6) {
+                    conn.rollback();
+                    return false;
+                }
+
+                if (courierId != null && !courierId.isEmpty()) {
+                    double deposit = price / 2.0;
+                    try (PreparedStatement refundStmt = conn.prepareStatement(refundCourierSql)) {
+                        refundStmt.setDouble(1, deposit);
+                        refundStmt.setString(2, courierId);
+                        if (refundStmt.executeUpdate() == 0) {
+                            conn.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateOrderSql)) {
+                    updateStmt.setString(1, orderId);
+                    if (updateStmt.executeUpdate() == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                return false;
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -255,8 +298,8 @@ public class OrderRepository {
 
     public boolean updateOrder(Order order) {
         String sql = "UPDATE orders SET pickup_address = ?, delivery_address = ?, " +
-                "weight = ?, length = ?, width = ?, height = ?, product_price = ?, price = ? " +
-                "WHERE id = ? AND status = 1";
+            "weight = ?, length = ?, width = ?, height = ?, product_price = ?, price = ? " +
+            "WHERE id = ? AND status IN (1,2)"; // allow editing until courier has picked up (status < 3)
         try (Connection conn = DBWorker.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
@@ -349,6 +392,49 @@ public class OrderRepository {
             conn.commit();
             return true;
         } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    public boolean confirmDeliveryByClient(String orderId, String clientId, String courierId, double amount) {
+    String checkSql = "SELECT status FROM orders WHERE id = ? AND client_id = ? AND status = 7";
+    String deductClient = "UPDATE users SET balance = balance - ? WHERE id = ? AND balance >= ?";
+    String addCourier = "UPDATE users SET balance = balance + ? WHERE id = ?";
+    String updateOrder = "UPDATE orders SET status = 5 WHERE id = ? AND status = 7";
+    try (Connection conn = DBWorker.getConnection()) {
+        conn.setAutoCommit(false);
+        try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+            ps.setString(1, orderId);
+            ps.setString(2, clientId);
+            ResultSet rs = ps.executeQuery();
+            if (!rs.next()) {
+                conn.rollback();
+                return false;
+            }
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(deductClient)) {
+            ps.setDouble(1, amount);
+            ps.setString(2, clientId);
+            ps.setDouble(3, amount);
+            if (ps.executeUpdate() == 0) throw new SQLException("Недостаточно средств у клиента");
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(addCourier)) {
+            ps.setDouble(1, amount);
+            ps.setString(2, courierId);
+            ps.executeUpdate();
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(updateOrder)) {
+            ps.setString(1, orderId);
+            if (ps.executeUpdate() == 0) throw new SQLException();
+        }
+        conn.commit();
+        return true;
+        
+        } catch (SQLException e) {
+        e.printStackTrace();
             return false;
         }
     }

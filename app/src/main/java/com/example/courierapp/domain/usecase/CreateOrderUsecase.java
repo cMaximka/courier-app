@@ -1,10 +1,13 @@
 package com.example.courierapp.domain.usecase;
 
 import com.example.courierapp.data.OrderRepository;
+import com.example.courierapp.data.AuthRepository;
 import com.example.courierapp.domain.entity.Order;
+import com.example.courierapp.domain.entity.User;
 
 public class CreateOrderUsecase {
     private final OrderRepository repository = new OrderRepository();
+    private final AuthRepository authRepository = new AuthRepository();
 
     public Order execute(String clientId, String pickupAddress, String deliveryAddress,
                          double weight, double length, double width, double height, double productPrice)
@@ -12,6 +15,23 @@ public class CreateOrderUsecase {
         String error = validate(pickupAddress, deliveryAddress, weight, length, width, height, productPrice);
         if (error != null) throw new IllegalArgumentException(error);
         double price = calculate(weight, length, width, height, productPrice);
+        
+        User client = authRepository.getUserById(clientId);
+        if (client == null) throw new IllegalArgumentException("Клиент не найден");
+
+        double balance = client.getBalance();
+        double activeSum = 0.0;
+        for (Order o : repository.getActiveOrdersByClientId(clientId)) {
+            activeSum += o.getPrice();
+        }
+
+        if (balance < price) {
+            throw new IllegalArgumentException("Недостаточно средств на балансе для оплаты этого заказа");
+        }
+
+        if (balance < (activeSum + price)) {
+            throw new IllegalArgumentException("Недостаточно средств: у вас есть незавершённые заказы и недостаточно баланса, чтобы оплатить их вместе с новым");
+        }
 
         Order order = new Order(clientId, pickupAddress, deliveryAddress,
                 weight, length, width, height, productPrice);

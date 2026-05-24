@@ -30,6 +30,7 @@ public class OrderDetailActivity extends AppCompatActivity {
     private Order order;
     private User currentUser;
     private String userType;
+    private Button btnConfirmDelivery;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +46,7 @@ public class OrderDetailActivity extends AppCompatActivity {
             finish();
             return;
         }
-        
+
         tvPickupAddress = findViewById(R.id.tv_detail_pickup_address);
         tvDeliveryAddress = findViewById(R.id.tv_detail_delivery_address);
         tvWeight = findViewById(R.id.tv_detail_weight);
@@ -63,8 +64,9 @@ public class OrderDetailActivity extends AppCompatActivity {
         btnEditOrder = findViewById(R.id.btn_edit_order);
         btnCancelOrder = findViewById(R.id.btn_cancel_order);
         clientButtons = findViewById(R.id.client_buttons);
+        btnConfirmDelivery = findViewById(R.id.btn_confirm_delivery);
 
-         btnBack.setOnClickListener(new View.OnClickListener() {
+        btnBack.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 finish();
@@ -122,6 +124,8 @@ public class OrderDetailActivity extends AppCompatActivity {
             tvStatus.setTextColor(0xFF4CAF50);
         } else if (status == 6) {
             tvStatus.setTextColor(0xFF9C27B0);
+        } else if (status == 7) {
+            tvStatus.setTextColor(0xFFFF9800);
         } else {
             tvStatus.setTextColor(0xFF9E9E9E);
         }
@@ -136,54 +140,88 @@ public class OrderDetailActivity extends AppCompatActivity {
                 btnPickupOrder.setVisibility(View.VISIBLE);
                 btnPickupOrder.setEnabled(true);
                 btnPickupOrder.setText("Забрал заказ");
-                btnPickupOrder.setOnClickListener(v -> showPickupConfirmation());
+                btnPickupOrder.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showPickupConfirmation();
+                    }
+                });
                 btnCompleteOrder.setVisibility(View.GONE);
-            }
-            else if (order.getStatus() == 4) {
+            } else if (order.getStatus() == 4) {
                 btnPickupOrder.setVisibility(View.GONE);
                 btnCompleteOrder.setVisibility(View.VISIBLE);
                 btnCompleteOrder.setEnabled(true);
                 btnCompleteOrder.setText("Доставил заказ");
-                btnCompleteOrder.setOnClickListener(v -> showCompleteConfirmation());
-            }
-            else {
+                btnCompleteOrder.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showCompleteConfirmation();
+                    }
+                });
+            } else {
                 btnPickupOrder.setVisibility(View.GONE);
                 btnCompleteOrder.setVisibility(View.GONE);
             }
-        }
-        else { // клиент
+        } else {
             clientButtons.setVisibility(View.VISIBLE);
             btnPickupOrder.setVisibility(View.GONE);
             btnCompleteOrder.setVisibility(View.GONE);
-            
-            // Показать кнопки Редактировать и Отменить только если заказ в статусе 1 (новый)
-            if (order.getStatus() == 1) {
+
+            int status = order.getStatus();
+            boolean canCancel = (status != 5 && status != 6);
+            boolean canEdit = (status < 3);
+
+            if (canEdit) {
                 btnEditOrder.setVisibility(View.VISIBLE);
+                btnEditOrder.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        editOrder();
+                    }
+                });
+            } else {
+                btnEditOrder.setVisibility(View.GONE);
+            }
+
+            if (canCancel) {
                 btnCancelOrder.setVisibility(View.VISIBLE);
-                btnEditOrder.setOnClickListener(v -> editOrder());
-                btnCancelOrder.setOnClickListener(v -> showCancelConfirmation());
-                btnDeliverOrder.setVisibility(View.GONE);
-            }
-            else if (order.getStatus() == 6) {
-                btnEditOrder.setVisibility(View.GONE);
+                btnCancelOrder.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showCancelConfirmation();
+                    }
+                });
+            } else {
                 btnCancelOrder.setVisibility(View.GONE);
-                btnDeliverOrder.setVisibility(View.GONE);
             }
-            else if (order.getStatus() == 3) {
-                btnEditOrder.setVisibility(View.GONE);
-                btnCancelOrder.setVisibility(View.GONE);
+
+            // Other client actions depending on status
+            if (status == 3) {
                 btnDeliverOrder.setVisibility(View.VISIBLE);
                 btnDeliverOrder.setEnabled(true);
                 btnDeliverOrder.setText("Отдал заказ");
-                btnDeliverOrder.setOnClickListener(v -> showDeliverConfirmation());
-            } 
-            else {
-                btnEditOrder.setVisibility(View.GONE);
-                btnCancelOrder.setVisibility(View.GONE);
-                btnDeliverOrder.setVisibility(View.VISIBLE);
+                btnDeliverOrder.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showDeliverConfirmation();
+                    }
+                });
+                btnConfirmDelivery.setVisibility(View.GONE);
+            } else if (status == 7) {
+                btnDeliverOrder.setVisibility(View.GONE);
+                btnConfirmDelivery.setVisibility(View.VISIBLE);
+                btnConfirmDelivery.setEnabled(true);
+                btnConfirmDelivery.setText("Подтвердить получение");
+                btnConfirmDelivery.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        confirmDelivery();
+                    }
+                });
+            } else {
+                btnDeliverOrder.setVisibility(View.GONE);
                 btnDeliverOrder.setEnabled(false);
-                btnDeliverOrder.setText("Отдал заказ");
-                btnDeliverOrder.setAlpha(0.5f);
+                btnConfirmDelivery.setVisibility(View.GONE);
             }
         }
     }
@@ -195,7 +233,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                updateOrderStatus(3); // Статус 3 = "Отдайте заказ курьеру"
+                updateOrderStatus(3);
             }
         });
         builder.setNegativeButton("Отмена", null);
@@ -209,7 +247,7 @@ public class OrderDetailActivity extends AppCompatActivity {
         builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                updateOrderStatus(4); // Статус 4 = "В пути"
+                updateOrderStatus(4);
             }
         });
         builder.setNegativeButton("Отмена", null);
@@ -219,8 +257,13 @@ public class OrderDetailActivity extends AppCompatActivity {
     private void showCompleteConfirmation() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Подтверждение");
-        builder.setMessage("Вы подтверждаете, что доставили заказ получателю?");
-        builder.setPositiveButton("Да", (dialog, which) -> updateOrderStatus(5));
+        builder.setMessage("Вы доставили заказ получателю? После этого клиент должен будет подтвердить получение, и только тогда средства поступят на ваш счёт.");
+        builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                updateOrderStatus(7);
+            }
+        });
         builder.setNegativeButton("Отмена", null);
         builder.show();
     }
@@ -245,6 +288,33 @@ public class OrderDetailActivity extends AppCompatActivity {
                             setupButtons();
                             Toast.makeText(OrderDetailActivity.this, "Статус обновлён", Toast.LENGTH_LONG).show();
                             setResult(RESULT_OK);
+                        }
+                    });
+                } catch (RuntimeException e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(OrderDetailActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            }
+        }).start();
+    }
+
+    private void confirmDelivery() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    CompleteOrderUsecase completeUsecase = new CompleteOrderUsecase();
+                    completeUsecase.execute(order.getId(), order.getClientId(), order.getCourierId(), order.getPrice());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(OrderDetailActivity.this, "Доставка подтверждена, средства списаны", Toast.LENGTH_LONG).show();
+                            setResult(RESULT_OK);
+                            finish();
                         }
                     });
                 } catch (RuntimeException e) {
@@ -311,7 +381,6 @@ public class OrderDetailActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1 && resultCode == RESULT_OK) {
-            // Обновить информацию о заказе после редактирования
             displayOrderInfo();
             setupButtons();
         }

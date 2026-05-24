@@ -201,6 +201,9 @@ public class OrderAdapter extends RecyclerView.Adapter<OrderAdapter.OrderViewHol
                 case 5:
                     tvStatus.setTextColor(0xFF607D8B); 
                     break;
+                case 7: 
+                    tvStatus.setTextColor(0xFFFF9800); 
+                    break;
                 default:
                     tvStatus.setTextColor(0xFF9E9E9E); 
                     break;
