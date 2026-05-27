@@ -9,7 +9,7 @@
         android:id="@+id/btn_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="← Назад"
+        android:text="@string/btn_back"
         android:textSize="16sp"
         android:textColor="?android:attr/textColorPrimary"
         android:padding="12dp"
@@ -33,7 +33,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес забора:"
+                android:text="@string/label_pickup"
                 android:textStyle="bold"
                 android:layout_marginTop="8dp" />
             <TextView
@@ -45,7 +45,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес доставки:"
+                android:text="@string/label_delivery"
                 android:textStyle="bold" />
             <TextView
                 android:id="@+id/tv_detail_delivery_address"
@@ -65,7 +65,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Вес:"
+                        android:text="@string/label_weight_short"
                         android:textStyle="bold" />
                     <TextView
                         android:id="@+id/tv_detail_weight"
@@ -81,7 +81,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Габариты:"
+                        android:text="@string/label_dimensions_short"
                         android:textStyle="bold" />
                     <TextView
                         android:id="@+id/tv_detail_dimensions"
@@ -94,7 +94,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Стоимость:"
+                android:text="@string/label_price"
                 android:textStyle="bold" />
             <TextView
                 android:id="@+id/tv_detail_price"
@@ -108,7 +108,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Взнос за заказ:"
+                android:text="@string/label_deposit"
                 android:textStyle="bold" />
             <TextView
                 android:id="@+id/tv_detail_deposit"
@@ -121,7 +121,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Статус:"
+                android:text="@string/label_status"
                 android:textStyle="bold" />
             <TextView
                 android:id="@+id/tv_detail_status"
@@ -133,7 +133,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Создан:"
+                android:text="@string/label_created"
                 android:textStyle="bold" />
             <TextView
                 android:id="@+id/tv_detail_created_at"
@@ -191,7 +191,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Редактировать"
+                android:text="@string/btn_edit"
                 android:visibility="gone" />
 
             <Button
@@ -199,7 +199,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Отменить"
+                android:text="@string/btn_cancel"
                 android:visibility="gone" />
 
         </LinearLayout>
@@ -208,21 +208,21 @@
             android:id="@+id/btn_pickup_order"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Забрал заказ"
+            android:text="@string/btn_pickup"
             android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_deliver_order"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Отдал заказ"
+            android:text="@string/btn_deliver"
             android:visibility="gone" />
 
         <Button
             android:id="@+id/btn_complete_order"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Доставил заказ"
+            android:text="@string/btn_complete"
             android:visibility="gone" />
 
         <Button
@@ -240,7 +240,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginTop="9dp"
-        android:text="Детали заказа"
+        android:text="@string/title_order_detail"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/btn_back"

@@ -1,8 +1,95 @@
 <resources>
     <string name="app_name">CourierApp</string>
+    
+    <!-- Login/Register buttons -->
     <string name="btn_login">Войти</string>
     <string name="btn_register">Зарегистрироваться</string>
+    <string name="btn_back">← Назад</string>
+    
+    <!-- Main screen -->
     <string name="txt_Hello">Войдите или зарегистрируйтесь</string>
-
+    
+    <!-- Login screen -->
+    <string name="title_login">Вход</string>
+    <string name="hint_login">Логин</string>
+    <string name="hint_password">Пароль</string>
+    
+    <!-- Registration screen -->
+    <string name="title_register">Регистрация</string>
+    <string name="rb_client">Клиент</string>
+    <string name="rb_courier">Курьер</string>
+    <string name="hint_full_name">Полное имя</string>
+    <string name="hint_phone">Телефон</string>
+    <string name="hint_passport">Паспортные данные</string>
+    <string name="hint_driver_license">Водительские права</string>
+    <string name="hint_address">Адрес</string>
+    
+    <!-- Client/Courier common -->
+    <string name="btn_create_order">Создать заказ</string>
+    <string name="btn_refresh">Обновить</string>
+    <string name="btn_profile">Профиль</string>
+    
+    <!-- Courier screen -->
+    <string name="rb_available_orders">Доступные заказы</string>
+    <string name="rb_my_orders">Мои заказы</string>
+    
+    <!-- Create Order screen -->
+    <string name="title_create_order">Создание заказа</string>
+    <string name="title_edit_order">Редактирование заказа</string>
+    <string name="label_pickup_address">Адрес забора</string>
+    <string name="hint_pickup_address">ул. Ленина, д. 1</string>
+    <string name="label_delivery_address">Адрес доставки</string>
+    <string name="hint_delivery_address">ул. Пушкина, д. 10</string>
+    <string name="label_weight">Вес (кг)</string>
+    <string name="hint_weight">Например: 2.5</string>
+    <string name="label_dimensions">Габариты (см)</string>
+    <string name="hint_length">Длина</string>
+    <string name="hint_width">Ширина</string>
+    <string name="hint_height">Высота</string>
+    <string name="label_product_price">Заявленная цена товара (руб)</string>
+    <string name="hint_product_price">Например: 5000</string>
+    <string name="label_calculated_price">Стоимость доставки: 0 руб</string>
+    <string name="btn_create">Создать заказ</string>
+    <string name="btn_save">Сохранить</string>
+    
+    <!-- Order Detail screen -->
+    <string name="title_order_detail">Детали заказа</string>
+    <string name="label_pickup">Адрес забора:</string>
+    <string name="label_delivery">Адрес доставки:</string>
+    <string name="label_weight_short">Вес:</string>
+    <string name="label_dimensions_short">Габариты:</string>
+    <string name="label_price">Стоимость:</string>
+    <string name="label_deposit">Взнос за заказ:</string>
+    <string name="label_status">Статус:</string>
+    <string name="label_created">Создан:</string>
+    <string name="btn_edit">Редактировать</string>
+    <string name="btn_cancel">Отменить</string>
+    <string name="btn_pickup">Забрал заказ</string>
+    <string name="btn_deliver">Отдал заказ</string>
+    <string name="btn_complete">Доставил заказ</string>
+    <string name="btn_confirm_delivery">Подтвердить получение</string>
+    <string name="btn_accept">Принять</string>
+    
+    <!-- Profile screen -->
+    <string name="title_profile">Мой профиль</string>
+    <string name="section_user_info">Информация о пользователе</string>
+    <string name="label_full_name">Полное имя:</string>
+    <string name="label_phone">Телефон:</string>
+    <string name="label_login">Логин:</string>
+    <string name="label_special_info">Доп. информация:</string>
+    <string name="label_balance">Баланс:</string>
+    <string name="label_order_history">История заказов</string>
+    <string name="btn_edit_profile">Редактировать</string>
+    <string name="btn_add_balance">Пополнить</string>
+    
+    <!-- Order Item -->
+    <string name="prefix_from">Откуда: </string>
+    <string name="prefix_to">Куда: </string>
+    <string name="prefix_weight">Вес: </string>
+    <string name="prefix_dimensions">Габариты: </string>
+    <string name="prefix_price">Стоимость: </string>
+    <string name="prefix_deposit">Взнос за заказ: </string>
+    <string name="prefix_courier">Курьер: </string>
+    <string name="prefix_created">Создан: </string>
 
 </resources>

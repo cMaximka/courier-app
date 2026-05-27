@@ -22,6 +22,7 @@ public class CreateOrderActivity extends AppCompatActivity {
 
     private EditText etPickupAddress, etDeliveryAddress, etWeight, etLength, etWidth, etHeight, etProductPrice;
     private TextView tvCalculatedPrice;
+    private TextView tvTitle;
     private Button btnCreate;
     private User currentUser;
     private Order orderToEdit;
@@ -50,17 +51,17 @@ public class CreateOrderActivity extends AppCompatActivity {
         etHeight = findViewById(R.id.et_height);
         etProductPrice = findViewById(R.id.et_product_price);
         tvCalculatedPrice = findViewById(R.id.tv_calculated_price);
+        tvTitle = findViewById(R.id.tv_title);
         btnCreate = findViewById(R.id.btn_create);
         Button btnBack = findViewById(R.id.btn_back);
-
-        // Установить текст кнопки в зависимости от режима
+        
         if (isEditMode) {
             btnCreate.setText("Сохранить");
-            setTitle("Редактирование заказа");
+            tvTitle.setText("Редактирование");
             populateFormWithOrderData();
         } else {
             btnCreate.setText("Создать");
-            setTitle("Создание заказа");
+            tvTitle.setText("Создание заказа");
         }
 
         setupPriceCalculation();
@@ -179,7 +180,6 @@ public class CreateOrderActivity extends AppCompatActivity {
         final double height = parseDouble(etHeight.getText().toString());
         final double productPrice = parseDouble(etProductPrice.getText().toString());
 
-        // Обновить данные заказа
         orderToEdit.setPickupAddress(pickupAddress);
         orderToEdit.setDeliveryAddress(deliveryAddress);
         orderToEdit.setWeight(weight);

@@ -239,9 +239,52 @@ public class OrderRepository {
         }
     }
 
-    public boolean cancelOrder(String orderId) {
+    public boolean cancelOrderByCourier(String orderId) {
+        String selectSql = "SELECT courier_id, status FROM orders WHERE id = ?";
+        String updateOrderSql = "UPDATE orders SET courier_id = NULL, status = 1 WHERE id = ?";
+
+        try (Connection conn = DBWorker.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+                selectStmt.setString(1, orderId);
+                ResultSet rs = selectStmt.executeQuery();
+                if (!rs.next()) {
+                    conn.rollback();
+                    return false;
+                }
+
+                int status = rs.getInt("status");
+
+                if (status != 2 && status != 3) {
+                    conn.rollback();
+                    return false;
+                }
+
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateOrderSql)) {
+                    updateStmt.setString(1, orderId);
+                    if (updateStmt.executeUpdate() == 0) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                e.printStackTrace();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Отмена заказа клиентом: статус меняется на 6, залог возвращается курьеру
+    public boolean cancelOrderByClient(String orderId) {
         String selectSql = "SELECT courier_id, price, status FROM orders WHERE id = ?";
-        String updateOrderSql = "UPDATE orders SET courier_id = NULL, status = 6 WHERE id = ?";
+        String updateOrderSql = "UPDATE orders SET status = 6 WHERE id = ?";
         String refundCourierSql = "UPDATE users SET balance = balance + ? WHERE id = ?";
 
         try (Connection conn = DBWorker.getConnection()) {
@@ -258,11 +301,13 @@ public class OrderRepository {
                 double price = rs.getDouble("price");
                 int status = rs.getInt("status");
 
+                // Нельзя отменить завершённый заказ или уже отменённый
                 if (status == 5 || status == 6) {
                     conn.rollback();
                     return false;
                 }
 
+                // Если у заказа есть курьер, вернуть ему залог
                 if (courierId != null && !courierId.isEmpty()) {
                     double deposit = price / 2.0;
                     try (PreparedStatement refundStmt = conn.prepareStatement(refundCourierSql)) {

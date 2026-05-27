@@ -13,7 +13,6 @@
         android:orientation="vertical"
         android:padding="12dp">
 
-        <!-- Информация о клиенте (видит курьер) -->
         <TextView
             android:id="@+id/tv_client_info"
             android:layout_width="match_parent"
@@ -23,7 +22,6 @@
             android:visibility="gone"
             android:layout_marginBottom="4dp" />
 
-        <!-- Информация о курьере (видит клиент) -->
         <TextView
             android:id="@+id/tv_courier_info"
             android:layout_width="match_parent"
@@ -103,7 +101,6 @@
             android:textSize="10sp"
             android:textColor="#666666" />
 
-        <!-- Кнопки действий для курьера (принять/отменить) -->
         <LinearLayout
             android:id="@+id/ll_buttons"
             android:layout_width="match_parent"
@@ -118,10 +115,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
-                android:text="Принять"
+                android:text="@string/btn_accept"
                 android:backgroundTint="#4CAF50"
                 android:textColor="#FFFFFF"
-                android:drawableStart="@android:drawable/ic_input_add"
                 android:drawablePadding="8dp" />
 
             <Button
@@ -130,10 +126,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
-                android:text="Отменить"
+                android:text="@string/btn_cancel"
                 android:backgroundTint="#8B0000"
                 android:textColor="#FFFFFF"
-                android:drawableStart="@drawable/ic_launcher_foreground"
                 android:drawablePadding="8dp" />
 
         </LinearLayout>

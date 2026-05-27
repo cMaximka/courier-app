@@ -28,8 +28,6 @@ public class OrderViewHolder extends RecyclerView.ViewHolder {
     private LinearLayout llButtons;
     private Button btnAccept;
     private Button btnCancel;
-    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
-
     public OrderViewHolder(@NonNull View itemView) {
         super(itemView);
         tvClientInfo = itemView.findViewById(R.id.tv_client_info);

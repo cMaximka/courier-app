@@ -12,7 +12,7 @@
         android:id="@+id/btn_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="← Назад"
+        android:text="@string/btn_back"
         android:textSize="16sp"
         android:textColor="?android:attr/textColorPrimary"
         android:padding="12dp"
@@ -21,14 +21,16 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
+        android:id="@+id/tv_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="11dp"
-        android:text="Создание заказа"
+        android:text="@string/title_create_order"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@+id/btn_back"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
@@ -47,7 +49,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес забора"
+                android:text="@string/label_pickup_address"
                 android:textStyle="bold" />
 
             <EditText
@@ -55,14 +57,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="ул. Ленина, д. 1"
+                android:hint="@string/hint_pickup_address"
                 android:inputType="textPostalAddress"
                 android:minLines="2" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Адрес доставки"
+                android:text="@string/label_delivery_address"
                 android:textStyle="bold" />
 
             <EditText
@@ -70,14 +72,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="ул. Пушкина, д. 10"
+                android:hint="@string/hint_delivery_address"
                 android:inputType="textPostalAddress"
                 android:minLines="2" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Вес (кг)"
+                android:text="@string/label_weight"
                 android:textStyle="bold" />
 
             <EditText
@@ -85,13 +87,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Например: 2.5"
+                android:hint="@string/hint_weight"
                 android:inputType="numberDecimal" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Габариты (см)"
+                android:text="@string/label_dimensions"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -105,7 +107,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:hint="Длина"
+                    android:hint="@string/hint_length"
                     android:inputType="numberDecimal" />
 
                 <EditText
@@ -114,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:hint="Ширина"
+                    android:hint="@string/hint_width"
                     android:inputType="numberDecimal" />
 
                 <EditText
@@ -122,7 +124,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:hint="Высота"
+                    android:hint="@string/hint_height"
                     android:inputType="numberDecimal" />
             </LinearLayout>
 
@@ -130,7 +132,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Заявленная цена товара (руб)"
+                android:text="@string/label_product_price"
                 android:textStyle="bold" />
 
             <EditText
@@ -138,7 +140,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Например: 5000"
+                android:hint="@string/hint_product_price"
                 android:inputType="numberDecimal" />
 
             <TextView
@@ -149,7 +151,7 @@
                 android:background="#f0f0f0"
                 android:gravity="center"
                 android:padding="12dp"
-                android:text="Стоимость доставки: 0 руб"
+                android:text="@string/label_calculated_price"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -162,7 +164,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Создать заказ"
+        android:text="@string/btn_create"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

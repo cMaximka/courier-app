@@ -15,7 +15,7 @@
         android:layout_marginTop="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:padding="12dp"
-        android:text="← Назад"
+        android:text="@string/btn_back"
         android:textColor="?android:attr/textColorPrimary"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
@@ -28,7 +28,7 @@
         android:layout_gravity="center"
         android:layout_marginStart="24dp"
         android:layout_marginTop="26dp"
-        android:text="Регистрация"
+        android:text="@string/title_register"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintStart_toEndOf="@+id/btn_back"
@@ -57,14 +57,14 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:checked="true"
-                android:text="Клиент" />
+                android:text="@string/rb_client" />
 
             <RadioButton
                 android:id="@+id/rb_courier"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Курьер" />
+                android:text="@string/rb_courier" />
 
         </RadioGroup>
 
@@ -73,7 +73,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Полное имя"
+            android:hint="@string/hint_full_name"
             android:inputType="textPersonName" />
 
         <EditText
@@ -81,7 +81,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Логин"
+            android:hint="@string/hint_login"
             android:inputType="textEmailAddress" />
 
         <EditText
@@ -89,7 +89,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Телефон"
+            android:hint="@string/hint_phone"
             android:inputType="phone" />
 
         <LinearLayout
@@ -104,7 +104,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Паспортные данные"
+                android:hint="@string/hint_passport"
                 android:inputType="textPersonName" />
 
             <EditText
@@ -112,7 +112,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Водительские права"
+                android:hint="@string/hint_driver_license"
                 android:inputType="textPersonName" />
 
         </LinearLayout>
@@ -129,7 +129,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
-                android:hint="Адрес"
+                android:hint="@string/hint_address"
                 android:inputType="textPostalAddress" />
 
         </LinearLayout>
@@ -139,14 +139,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:hint="Пароль"
+            android:hint="@string/hint_password"
             android:inputType="textPassword" />
 
         <Button
             android:id="@+id/btn_register"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Зарегистрироваться"
+            android:text="@string/btn_register"
             android:textSize="16sp" />
 
     </LinearLayout>

@@ -8,7 +8,6 @@ import java.util.List;
 public class GetOrdersUsecase {
     private final OrderRepository repository = new OrderRepository();
 
-    // для клиента
     public List<Order> getActiveOrders(String clientId) {
         return repository.getActiveOrdersByClientId(clientId);
     }
@@ -16,7 +15,6 @@ public class GetOrdersUsecase {
         return repository.getCompletedOrdersByClientId(clientId);
     }
 
-    // для курьера
     public List<Order> getAvailableOrders() {
         return repository.getAllAvailableOrders();
     }

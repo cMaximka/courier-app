@@ -134,7 +134,7 @@ public class CourierActivity extends AppCompatActivity {
                 "Вы уверены, что хотите принять этот заказ?\n\n" +
                         "Стоимость заказа: %.2f руб.\n" +
                         "Взнос за заказ: %.2f руб.\n" +
-                        "Ваш текущий баланс: %.2f руб.\n\n" +
+                        "Ваш текaущий баланс: %.2f руб.\n\n" +
                         "После принятия заказа с вашего баланса будет списано %.2f руб.\n" +
                         "Отказаться от заказа после принятия будет возможно, но взнос НЕ возвращается!",
                 order.getPrice(), deposit, currentBalance, deposit));
@@ -158,10 +158,11 @@ public class CourierActivity extends AppCompatActivity {
 
     private void showCancelConfirmationDialog(final Order order) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Подтверждение отмены заказа");
+        builder.setTitle("Подтверждение отказа от заказа");
         builder.setMessage(String.format(
                 "Вы уверены, что хотите отказаться от заказа №%s?\n\n" +
-                        "ВНИМАНИЕ: Взнос за заказ (%.2f руб.) НЕ ВОЗВРАЩАЕТСЯ!",
+                        "Статус заказа вернётся на 'Курьер не назначен'.\n" +
+                        "Взнос за заказ (%.2f руб.) будет удержан и НЕ ВОЗВРАЩАЕТСЯ!",
                 order.getId(), order.getPrice() / 2));
 
         builder.setPositiveButton("Отказаться", new DialogInterface.OnClickListener() {
@@ -258,11 +259,11 @@ public class CourierActivity extends AppCompatActivity {
             @Override
             public void run() {
                 try {
-                    cancelOrderUsecase.execute(order.getId());
+                    cancelOrderUsecase.executeByCourier(order.getId());
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            Toast.makeText(CourierActivity.this, "Заказ отменён!", Toast.LENGTH_LONG).show();
+                            Toast.makeText(CourierActivity.this, "Вы отказались от заказа. Взнос удержан.", Toast.LENGTH_LONG).show();
                             if (rgOrderType.getCheckedRadioButtonId() == R.id.rb_available_orders)
                                 loadAvailableOrders();
                             else

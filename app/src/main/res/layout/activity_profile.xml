@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="11dp"
-        android:text="Мой профиль"
+        android:text="@string/title_profile"
         android:textSize="24sp"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
@@ -22,7 +22,7 @@
         android:id="@+id/btn_back"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="← Назад"
+        android:text="@string/btn_back"
         android:textSize="16sp"
         android:textColor="?android:attr/textColorPrimary"
         android:padding="12dp"
@@ -55,7 +55,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Информация о пользователе"
+                    android:text="@string/section_user_info"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
@@ -64,7 +64,7 @@
                     android:id="@+id/tv_full_name_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Полное имя:"
+                    android:text="@string/label_full_name"
                     android:textStyle="bold" />
 
                 <TextView
@@ -78,7 +78,7 @@
                     android:id="@+id/tv_phone_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Телефон:"
+                    android:text="@string/label_phone"
                     android:textStyle="bold" />
 
                 <TextView
@@ -92,7 +92,7 @@
                     android:id="@+id/tv_login_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Логин:"
+                    android:text="@string/label_login"
                     android:textStyle="bold" />
 
                 <TextView
@@ -106,7 +106,7 @@
                     android:id="@+id/tv_special_info_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Доп. информация:"
+                    android:text="@string/label_special_info"
                     android:textStyle="bold" />
 
                 <TextView
@@ -120,7 +120,7 @@
                     android:id="@+id/tv_balance_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Баланс:"
+                    android:text="@string/label_balance"
                     android:textStyle="bold" />
 
                 <TextView
@@ -144,7 +144,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginEnd="8dp"
                         android:layout_weight="1"
-                        android:text="Редактировать" />
+                        android:text="@string/btn_edit_profile" />
 
                     <Button
                         android:id="@+id/btn_add_balance"
@@ -152,7 +152,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
                         android:layout_weight="1"
-                        android:text="Пополнить" />
+                        android:text="@string/btn_add_balance" />
 
                 </LinearLayout>
 
@@ -162,7 +162,7 @@
                 android:id="@+id/tv_order_history_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="История заказов"
+                android:text="@string/label_order_history"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />

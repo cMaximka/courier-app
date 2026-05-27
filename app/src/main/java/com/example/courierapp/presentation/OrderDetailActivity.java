@@ -195,7 +195,6 @@ public class OrderDetailActivity extends AppCompatActivity {
                 btnCancelOrder.setVisibility(View.GONE);
             }
 
-            // Other client actions depending on status
             if (status == 3) {
                 btnDeliverOrder.setVisibility(View.VISIBLE);
                 btnDeliverOrder.setEnabled(true);
@@ -339,7 +338,9 @@ public class OrderDetailActivity extends AppCompatActivity {
     private void showCancelConfirmation() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Подтверждение отмены");
-        builder.setMessage("Вы уверены, что хотите отменить заказ? Статус будет изменён на \"Отменён\".");
+        builder.setMessage("Вы уверены, что хотите отменить заказ?\n\n" +
+                "Статус будет изменён на \"Отменён\".\n" +
+                "Если у заказа есть назначенный курьер, ему будет возвращен его взнос.");
         builder.setPositiveButton("Да", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -356,7 +357,7 @@ public class OrderDetailActivity extends AppCompatActivity {
             public void run() {
                 try {
                     CancelOrderUsecase cancelUsecase = new CancelOrderUsecase();
-                    cancelUsecase.execute(order.getId());
+                    cancelUsecase.executeByClient(order.getId());
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
